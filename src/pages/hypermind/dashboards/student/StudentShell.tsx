@@ -4,7 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
 import { useLangStore } from '@/stores/langStore'
 import { useAuthStore } from '@/stores/authStore'
-import { STUDENT_PATHS, ROLE_BASE } from '@/lib/dashboardPaths'
+import { STUDENT_PATHS, getDashboardPathByRole } from '@/lib/dashboardPaths'
+import { RoleSwitcher } from '@/components/RoleSwitcher'
+import { UserProfileMenu } from '@/components/UserProfileMenu'
+import { BrandLogo } from '@/components/BrandLogo'
 import {
   Sun,
   Moon,
@@ -35,9 +38,6 @@ import {
   AlertCircle,
   HelpCircle,
   Send,
-  ArrowLeftRight,
-  Check,
-  ClipboardCheck,
   type LucideIcon,
 } from 'lucide-react'
 import { Footer } from '../../_shared/Footer'
@@ -49,50 +49,6 @@ export const VIOLET_GLOW = 'rgba(124,92,246,0.25)'
 export const GREEN = '#5EE6A8'
 export const AMBER = '#F4B26C'
 export const BLUE = '#60A5FA'
-
-type RoleId = 'admin' | 'student' | 'creator' | 'evaluator'
-interface RoleDef {
-  id: RoleId
-  label: string
-  description: string
-  Icon: LucideIcon
-  color: string
-  soft: string
-}
-const SWITCH_ROLES: RoleDef[] = [
-  {
-    id: 'admin',
-    label: 'Admin',
-    description: 'Manage the full platform',
-    Icon: User,
-    color: '#F4636E',
-    soft: 'rgba(244,99,110,0.10)',
-  },
-  {
-    id: 'creator',
-    label: 'Creator',
-    description: 'Publish & manage your courses',
-    Icon: Palette,
-    color: '#F4B26C',
-    soft: 'rgba(244,178,108,0.14)',
-  },
-  {
-    id: 'evaluator',
-    label: 'Evaluator',
-    description: 'Grade subjective answers',
-    Icon: ClipboardCheck,
-    color: '#5BC8C5',
-    soft: 'rgba(91,200,197,0.14)',
-  },
-  {
-    id: 'student',
-    label: 'Student',
-    description: 'Continue your learning journey',
-    Icon: GraduationCap,
-    color: '#7C5CF6',
-    soft: 'rgba(124,92,246,0.12)',
-  },
-]
 
 type Panel = 'notifications' | 'messages' | 'profile' | 'feedback' | null
 
@@ -335,19 +291,40 @@ export default function StudentShell({
   }
   const activeLang = useLangStore((s) => s.lang)
   const setActiveLang = (l: string) => useLangStore.getState().set(l === 'ES' ? 'ES' : 'EN')
+  const authUser = useAuthStore((s) => s.user)
+  const activeAuthRole = useAuthStore((s) => s.activeRole)
   const switchAuthRole = useAuthStore((s) => s.switchRole)
   const logout = useAuthStore((s) => s.logout)
   const [openPanel, setOpenPanel] = useState<Panel>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
-  const [roleOpen, setRoleOpen] = useState(false)
-  const [activeRole, setActiveRole] = useState<RoleId>('student')
-  const handleRoleSwitch = (id: RoleId) => {
-    setActiveRole(id)
-    setRoleOpen(false)
-    switchAuthRole(id === 'evaluator' ? 'creator' : id)
-    navigate(ROLE_BASE[id])
+  const handleRoleSwitch = (id: 'admin' | 'creator' | 'evaluator' | 'student') => {
+    const nextRole = switchAuthRole(id)
+    if (nextRole === 'guest') return
+    navigate(getDashboardPathByRole(nextRole))
   }
+  const displayName = authUser?.name ?? 'User'
+  const displayEmail = authUser?.email ?? ''
+  const displayInitials =
+    authUser?.initials ||
+    displayName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('')
+  const displayFirstName = displayName.split(' ')[0] || displayName
+  const roleSubtitle =
+    activeAuthRole === 'admin'
+      ? t('roleSwitch.admin').toUpperCase()
+      : activeAuthRole === 'creator' || activeAuthRole === 'evaluator'
+        ? t('roleSwitch.creator').toUpperCase()
+        : t('roleSwitch.student').toUpperCase()
+  const userXp = authUser?.xp ?? 0
+  const userKarma = authUser?.karma ?? 0
+  const userHmn = authUser?.hmn ?? 0
+  const userCredits = authUser?.credits ?? 0
+  const formatStat = (value: number) => new Intl.NumberFormat().format(value)
   const handleLogout = () => {
     logout()
     setOpenPanel(null)
@@ -361,20 +338,6 @@ export default function StudentShell({
     { id: 'assessments', label: t('nav.assessments') },
     { id: 'community', label: t('nav.community') },
   ]
-
-  const switchRoles: RoleDef[] = SWITCH_ROLES.map((r) => ({
-    ...r,
-    label: t(`roleSwitch.${r.id}`),
-    description:
-      r.id === 'admin'
-        ? t('roleSwitch.descAdmin')
-        : r.id === 'creator'
-          ? t('roleSwitch.descCreator')
-          : r.id === 'evaluator'
-            ? t('roleSwitch.descEvaluator')
-            : t('roleSwitch.descStudent'),
-  }))
-  const activeRoleDef = switchRoles.find((r) => r.id === activeRole)!
 
   return (
     <div className={`hm-root${isLight ? ' hm-light' : ''}`} style={{ minHeight: '100vh' }}>
@@ -398,24 +361,7 @@ export default function StudentShell({
             className="flex items-center gap-2.5 shrink-0"
             style={{ textDecoration: 'none' }}
           >
-            <span className="hm-mark relative h-7 w-7">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <path
-                  d="M3 13V3M13 13V3M3 8H13"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  style={{ color: 'var(--hm-violet-2)' }}
-                />
-              </svg>
-            </span>
+            <BrandLogo />
             <span
               className="text-[15px] font-semibold leading-none"
               style={{ color: 'var(--hm-text)', letterSpacing: '-0.02em' }}
@@ -449,41 +395,47 @@ export default function StudentShell({
               className="flex items-center gap-2 rounded-lg px-2.5 h-8"
               style={{ background: 'var(--hm-bg-card)', border: '1px solid var(--hm-border)' }}
             >
-              <span className="flex items-center gap-1" title={t('studentShell.streakTitle')}>
-                <Flame className="h-3 w-3" style={{ color: 'var(--hm-amber)' }} />
-                <span
-                  className="hm-mono text-[10.5px] font-semibold"
-                  style={{ color: 'var(--hm-text)' }}
-                >
-                  12d
-                </span>
-              </span>
-              <span className="h-3 w-px shrink-0" style={{ background: 'var(--hm-border)' }} />
-              <span className="flex items-center gap-1" title={t('studentShell.karmaTitle')}>
+              <span className="flex items-center gap-1" title="XP">
                 <Sparkles className="h-3 w-3" style={{ color: 'var(--hm-violet-2)' }} />
                 <span
                   className="hm-mono text-[10.5px] font-semibold"
                   style={{ color: 'var(--hm-text)' }}
                 >
-                  1,840
+                  {formatStat(userXp)}
                 </span>
               </span>
               <span className="h-3 w-px shrink-0" style={{ background: 'var(--hm-border)' }} />
-              <span className="flex items-center gap-1.5" title={t('studentShell.levelTitle')}>
+              <span className="flex items-center gap-1" title="Karma">
+                <Flame className="h-3 w-3" style={{ color: 'var(--hm-amber)' }} />
+                <span
+                  className="hm-mono text-[10.5px] font-semibold"
+                  style={{ color: 'var(--hm-text)' }}
+                >
+                  {formatStat(userKarma)}
+                </span>
+              </span>
+              <span className="h-3 w-px shrink-0" style={{ background: 'var(--hm-border)' }} />
+              <span className="flex items-center gap-1.5" title="HMN Tokens">
                 <span
                   className="hm-mono inline-flex items-center justify-center rounded px-1 text-[9px] font-bold leading-4"
                   style={{
-                    background: 'var(--hm-violet-soft)',
-                    color: 'var(--hm-violet-2)',
+                    background: 'var(--hm-amber-soft)',
+                    color: 'var(--hm-amber)',
                     border: '1px solid var(--hm-border-accent)',
-                    minWidth: 18,
                   }}
                 >
-                  14
+                  HMN
                 </span>
-                <div className="hm-progress" style={{ width: 44, height: 3 }}>
-                  <div className="hm-progress-fill" style={{ width: '78%' }} />
-                </div>
+                <span className="hm-mono text-[10.5px] font-semibold" style={{ color: 'var(--hm-text)' }}>
+                  {formatStat(userHmn)}
+                </span>
+              </span>
+              <span className="h-3 w-px shrink-0" style={{ background: 'var(--hm-border)' }} />
+              <span className="flex items-center gap-1.5" title="Credits">
+                <CreditCard className="h-3 w-3" style={{ color: GREEN }} />
+                <span className="hm-mono text-[10.5px] font-semibold" style={{ color: 'var(--hm-text)' }}>
+                  {formatStat(userCredits)}
+                </span>
               </span>
             </div>
           </div>
@@ -711,567 +663,30 @@ export default function StudentShell({
             </div>
           </div>
 
-          {/* ── Role switcher chip ── */}
-          <div className="relative hidden lg:block">
-            <button
-              type="button"
-              onClick={() => {
-                setRoleOpen((v) => !v)
-                setOpenPanel(null)
-              }}
-              aria-expanded={roleOpen}
-              className="flex items-center gap-2 pl-1 pr-2.5 h-8 rounded-full transition-all"
-              style={{
-                background: roleOpen ? activeRoleDef.soft : 'transparent',
-                border: `1px solid ${roleOpen ? activeRoleDef.color + '55' : 'var(--hm-border)'}`,
-                boxShadow: roleOpen ? `0 0 0 3px ${activeRoleDef.color}14` : 'none',
-              }}
-              onMouseEnter={(e) => {
-                if (!roleOpen) {
-                  e.currentTarget.style.background = activeRoleDef.soft
-                  e.currentTarget.style.borderColor = `${activeRoleDef.color}55`
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!roleOpen) {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.borderColor = 'var(--hm-border)'
-                }
-              }}
-            >
-              <span
-                className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 transition-colors"
-                style={{
-                  background: activeRoleDef.soft,
-                  color: activeRoleDef.color,
-                  boxShadow: `0 0 10px ${activeRoleDef.color}44`,
-                }}
-              >
-                <activeRoleDef.Icon className="h-3 w-3" />
-              </span>
-              <span className="flex flex-col items-start leading-tight">
-                <span
-                  className="hm-mono text-[8px] font-semibold"
-                  style={{ color: 'var(--hm-text-dim)', letterSpacing: '0.16em' }}
-                >
-                  {t('shell.viewingAs')}
-                </span>
-                <span
-                  className="hm-mono text-[10px] font-semibold leading-none"
-                  style={{ color: activeRoleDef.color, letterSpacing: '0.10em' }}
-                >
-                  {activeRoleDef.label.toUpperCase()}
-                </span>
-              </span>
-              <ChevronDown
-                className="h-3 w-3 ml-0.5 shrink-0 transition-transform"
-                style={{
-                  color: 'var(--hm-text-dim)',
-                  transform: roleOpen ? 'rotate(180deg)' : 'none',
-                }}
-              />
-            </button>
-
-            {roleOpen && (
-              <>
-                <button
-                  type="button"
-                  aria-label={t('studentShell.closeRoleMenu')}
-                  onClick={() => setRoleOpen(false)}
-                  className="cursor-default"
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 9980,
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                  }}
-                />
-                <div
-                  role="menu"
-                  className="overflow-hidden rounded-xl"
-                  style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 'calc(100% + 8px)',
-                    width: 300,
-                    zIndex: 9990,
-                    background:
-                      'linear-gradient(180deg, var(--hm-bg-card-2) 0%, var(--hm-bg-card) 100%)',
-                    border: '1px solid var(--hm-border-strong)',
-                    boxShadow: `0 24px 60px -12px rgba(0,0,0,0.75), 0 0 0 1px ${activeRoleDef.color}10`,
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    className="absolute -top-1.5 right-12 h-3 w-3 rotate-45"
-                    style={{
-                      background: 'var(--hm-bg-card-2)',
-                      borderLeft: '1px solid var(--hm-border-strong)',
-                      borderTop: '1px solid var(--hm-border-strong)',
-                    }}
-                  />
-
-                  {/* Header */}
-                  <div
-                    className="px-4 py-2.5 flex items-center gap-2"
-                    style={{ borderBottom: '1px solid var(--hm-border)' }}
-                  >
-                    <ArrowLeftRight className="h-3 w-3" style={{ color: 'var(--hm-text-dim)' }} />
-                    <p
-                      className="hm-mono text-[9.5px] font-semibold"
-                      style={{ color: 'var(--hm-text-dim)', letterSpacing: '0.16em' }}
-                    >
-                      {t('shell.switchRole')}
-                    </p>
-                  </div>
-
-                  {/* Role rows */}
-                  {switchRoles.map((r) => {
-                    const active = r.id === activeRole
-                    return (
-                      <button
-                        key={r.id}
-                        role="menuitem"
-                        type="button"
-                        onClick={() => handleRoleSwitch(r.id)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left relative transition-colors"
-                        style={{
-                          background: active ? r.soft : 'transparent',
-                          borderTop: '1px solid var(--hm-border)',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!active) e.currentTarget.style.background = 'var(--hm-bg-card)'
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!active) e.currentTarget.style.background = 'transparent'
-                        }}
-                      >
-                        {active && (
-                          <span
-                            aria-hidden
-                            style={{
-                              position: 'absolute',
-                              left: 0,
-                              top: 8,
-                              bottom: 8,
-                              width: 3,
-                              background: r.color,
-                              borderRadius: 2,
-                              boxShadow: `0 0 10px ${r.color}`,
-                            }}
-                          />
-                        )}
-                        <span
-                          className="flex h-8 w-8 items-center justify-center rounded-full shrink-0"
-                          style={{
-                            background: r.soft,
-                            color: r.color,
-                            boxShadow: `0 0 14px ${r.color}33`,
-                          }}
-                        >
-                          <r.Icon className="h-3.5 w-3.5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p
-                              className="text-[13px] font-semibold"
-                              style={{ color: active ? r.color : 'var(--hm-text)' }}
-                            >
-                              {r.label}
-                            </p>
-                            {active && <Check className="h-3 w-3" style={{ color: r.color }} />}
-                          </div>
-                          <p className="text-[11px]" style={{ color: 'var(--hm-text-dim)' }}>
-                            {r.description}
-                          </p>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </>
-            )}
+          <div
+            className="hidden lg:block"
+            onClick={() => {
+              setOpenPanel(null)
+            }}
+          >
+            <RoleSwitcher
+              availableRoles={authUser?.roles ?? []}
+              activeRole={activeAuthRole}
+              onSwitch={handleRoleSwitch}
+            />
           </div>
 
           {/* Avatar — desktop only (lg+) */}
           <div className="relative hidden lg:block">
-            <button
-              type="button"
-              onClick={() => togglePanel('profile')}
-              aria-expanded={openPanel === 'profile'}
-              aria-label={t('studentShell.openUserMenu')}
-              className="flex items-center gap-2 pl-1.5 pr-2.5 h-9 rounded-lg transition-colors"
-              style={{
-                background: openPanel === 'profile' ? VIOLET_SOFT : 'var(--hm-bg-card)',
-                border: `1px solid ${openPanel === 'profile' ? VIOLET + '44' : 'var(--hm-border)'}`,
-              }}
-            >
-              <span
-                className="flex h-6 w-6 items-center justify-center rounded-full hm-mono text-[10px] font-semibold shrink-0"
-                style={{
-                  background: 'linear-gradient(135deg, #7C5CF6 0%, #A78BFA 100%)',
-                  color: 'white',
-                }}
-              >
-                {t('studentShell.demoInitials')}
-              </span>
-              <span
-                className="text-[12.5px] font-medium"
-                style={{ color: 'var(--hm-text)', letterSpacing: '-0.01em' }}
-              >
-                {t('studentShell.demoFirstName')}
-              </span>
-              <ChevronDown
-                className="h-3.5 w-3.5 ml-0.5 transition-transform"
-                style={{
-                  color: 'var(--hm-text-dim)',
-                  transform: openPanel === 'profile' ? 'rotate(180deg)' : 'rotate(0deg)',
-                }}
-              />
-            </button>
-
-            {openPanel === 'profile' && (
-              <div
-                className="absolute right-0 top-[calc(100%+8px)] z-[9999] w-52 rounded-xl overflow-visible"
-                style={{
-                  background:
-                    'linear-gradient(180deg, var(--hm-bg-card-2) 0%, var(--hm-bg-card) 100%)',
-                  border: '1px solid var(--hm-border-strong)',
-                  boxShadow:
-                    '0 24px 60px -10px rgba(0,0,0,0.80), 0 8px 24px -6px rgba(0,0,0,0.55), 0 0 0 1px rgba(139,92,246,0.10)',
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  className="absolute -top-1.5 right-4 h-3 w-3 rotate-45 z-10"
-                  style={{
-                    background: 'var(--hm-bg-card-2)',
-                    borderLeft: '1px solid var(--hm-border-strong)',
-                    borderTop: '1px solid var(--hm-border-strong)',
-                  }}
-                />
-
-                {/* ── Compact user header ── */}
-                <div
-                  className="flex items-center gap-2.5 px-3 py-2.5"
-                  style={{ borderBottom: '1px solid var(--hm-border)' }}
-                >
-                  <span
-                    className="flex h-7 w-7 items-center justify-center rounded-full hm-mono text-[10px] font-semibold shrink-0"
-                    style={{
-                      background: 'linear-gradient(135deg, #7C5CF6 0%, #A78BFA 100%)',
-                      color: 'white',
-                    }}
-                  >
-                    {t('studentShell.demoInitials')}
-                  </span>
-                  <div className="min-w-0">
-                    <p
-                      className="text-[12.5px] font-semibold truncate leading-tight"
-                      style={{ color: 'var(--hm-text)', letterSpacing: '-0.01em' }}
-                    >
-                      {t('studentShell.demoFullName')}
-                    </p>
-                    <p className="text-[10.5px] truncate" style={{ color: 'var(--hm-text-dim)' }}>
-                      {t('studentShell.demoEmail')}
-                    </p>
-                  </div>
-                </div>
-
-                {/* ── Main items ── */}
-                <div className="py-1">
-                  {[
-                    {
-                      icon: Award,
-                      label: t('shell.myCertificates'),
-                      tint: 'var(--hm-amber)',
-                      to: '/student/certificates',
-                    },
-                    {
-                      icon: Bell,
-                      label: t('shell.notifications'),
-                      tint: 'var(--hm-amber)',
-                      to: '/student/notifications',
-                    },
-                    {
-                      icon: MessageSquare,
-                      label: t('shell.inbox'),
-                      tint: BLUE,
-                      to: '/student/inbox',
-                    },
-                    {
-                      icon: CreditCard,
-                      label: t('shell.subscription'),
-                      tint: GREEN,
-                      to: '/student/subscription',
-                    },
-                    {
-                      icon: Receipt,
-                      label: t('shell.creditLog'),
-                      tint: GREEN,
-                      to: '/student/credit-log',
-                    },
-                    {
-                      icon: MessageSquarePlus,
-                      label: t('shell.sendFeedback'),
-                      tint: VIOLET,
-                      to: '/student/feedback',
-                    },
-                    {
-                      icon: User,
-                      label: t('shell.profile'),
-                      tint: 'var(--hm-text-muted)',
-                      to: '/student/profile',
-                    },
-                  ].map(({ icon: Icon, label, tint, to }) => (
-                    <Link
-                      key={label}
-                      to={to}
-                      onClick={() => setOpenPanel(null)}
-                      className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors"
-                      onMouseEnter={(e) => (e.currentTarget.style.background = VIOLET_SOFT)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      style={{ background: 'transparent' }}
-                    >
-                      <span
-                        className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
-                        style={{
-                          background: 'var(--hm-bg-card-2)',
-                          border: '1px solid var(--hm-border)',
-                        }}
-                      >
-                        <Icon className="h-3 w-3" style={{ color: tint }} />
-                      </span>
-                      <span
-                        className="text-[12.5px] font-medium"
-                        style={{ color: 'var(--hm-text)' }}
-                      >
-                        {label}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-
-                {/* ── Apply as Creator ── */}
-                <div
-                  className="px-2 pb-1.5"
-                  style={{ borderTop: '1px solid var(--hm-border)', paddingTop: 6 }}
-                >
-                  <Link
-                    to="/student/apply-creator"
-                    onClick={() => setOpenPanel(null)}
-                    className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-all"
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = 'rgba(244,178,108,0.10)')
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    style={{ background: 'transparent' }}
-                  >
-                    <span
-                      className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
-                      style={{
-                        background: 'rgba(244,178,108,0.14)',
-                        border: '1px solid rgba(244,178,108,0.30)',
-                      }}
-                    >
-                      <Palette className="h-3 w-3" style={{ color: 'var(--hm-amber)' }} />
-                    </span>
-                    <span
-                      className="text-[12.5px] font-semibold flex-1"
-                      style={{ color: 'var(--hm-amber)' }}
-                    >
-                      {t('shell.applyAsCreator')}
-                    </span>
-                    <span
-                      className="hm-mono text-[8px] px-1 py-0.5 rounded font-bold"
-                      style={{
-                        background: 'rgba(244,178,108,0.14)',
-                        color: 'var(--hm-amber)',
-                        letterSpacing: '0.08em',
-                      }}
-                    >
-                      NEW
-                    </span>
-                  </Link>
-                </div>
-
-                {/* ── Language (submenu) + Theme ── */}
-                <div className="py-1" style={{ borderTop: '1px solid var(--hm-border)' }}>
-                  {/* Language row — submenu trigger */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setLangOpen((v) => !v)}
-                      className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors"
-                      onMouseEnter={(e) => (e.currentTarget.style.background = VIOLET_SOFT)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      style={{ background: langOpen ? VIOLET_SOFT : 'transparent' }}
-                    >
-                      <span
-                        className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
-                        style={{
-                          background: 'var(--hm-bg-card-2)',
-                          border: '1px solid var(--hm-border)',
-                        }}
-                      >
-                        <Globe className="h-3 w-3" style={{ color: BLUE }} />
-                      </span>
-                      <span
-                        className="text-[12.5px] font-medium flex-1"
-                        style={{ color: 'var(--hm-text)' }}
-                      >
-                        {t('studentShell.language')}
-                      </span>
-                      <span
-                        className="hm-mono flex items-center gap-1 text-[10.5px] font-semibold"
-                        style={{ color: BLUE }}
-                      >
-                        {activeLang}
-                        <ChevronRight className="h-3 w-3" style={{ opacity: 0.7 }} />
-                      </span>
-                    </button>
-
-                    {/* Language flyout submenu — opens to the left */}
-                    {langOpen && (
-                      <div
-                        className="absolute rounded-xl overflow-hidden"
-                        style={{
-                          right: 'calc(100% + 8px)',
-                          top: -8,
-                          width: 180,
-                          zIndex: 9999,
-                          background:
-                            'linear-gradient(180deg, var(--hm-bg-card-2) 0%, var(--hm-bg-card) 100%)',
-                          border: '1px solid var(--hm-border-strong)',
-                          boxShadow:
-                            '0 20px 50px -8px rgba(0,0,0,0.75), 0 8px 20px -4px rgba(0,0,0,0.50)',
-                        }}
-                      >
-                        {/* Submenu header */}
-                        <div
-                          className="flex items-center gap-2 px-3 py-2.5"
-                          style={{ borderBottom: '1px solid var(--hm-border)' }}
-                        >
-                          <Globe className="h-3 w-3 shrink-0" style={{ color: BLUE }} />
-                          <span
-                            className="hm-mono text-[10px] font-bold tracking-[0.10em]"
-                            style={{ color: 'var(--hm-text-dim)' }}
-                          >
-                            {t('creatorEdit.languageLabel')}
-                          </span>
-                        </div>
-                        {/* Options */}
-                        {[
-                          { code: 'EN', label: t('studentShell.langEnglish'), flag: '🇺🇸' },
-                          { code: 'ES', label: t('studentShell.langSpanish'), flag: '🇪🇸' },
-                        ].map(({ code, label, flag }, i) => (
-                          <button
-                            key={code}
-                            type="button"
-                            onClick={() => {
-                              setActiveLang(code)
-                              setLangOpen(false)
-                            }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 transition-colors"
-                            onMouseEnter={(e) => (e.currentTarget.style.background = VIOLET_SOFT)}
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background =
-                                activeLang === code ? `${BLUE}12` : 'transparent')
-                            }
-                            style={{
-                              background: activeLang === code ? `${BLUE}12` : 'transparent',
-                              borderTop: i === 0 ? 'none' : '1px solid var(--hm-border)',
-                            }}
-                          >
-                            <span className="text-[14px] leading-none">{flag}</span>
-                            <span
-                              className="text-[12.5px] flex-1 text-left"
-                              style={{ color: 'var(--hm-text)' }}
-                            >
-                              {label}
-                            </span>
-                            {activeLang === code && (
-                              <span
-                                className="hm-mono text-[9.5px] font-bold px-1.5 py-0.5 rounded"
-                                style={{ background: `${BLUE}20`, color: BLUE }}
-                              >
-                                {code}
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Theme toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setIsLight((v) => !v)}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors"
-                    onMouseEnter={(e) => (e.currentTarget.style.background = VIOLET_SOFT)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    style={{ background: 'transparent' }}
-                  >
-                    <span
-                      className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
-                      style={{
-                        background: 'var(--hm-bg-card-2)',
-                        border: '1px solid var(--hm-border)',
-                      }}
-                    >
-                      {isLight ? (
-                        <Moon className="h-3 w-3" style={{ color: 'var(--hm-violet-2)' }} />
-                      ) : (
-                        <Sun className="h-3 w-3" style={{ color: 'var(--hm-amber)' }} />
-                      )}
-                    </span>
-                    <span
-                      className="text-[12.5px] font-medium flex-1"
-                      style={{ color: 'var(--hm-text)' }}
-                    >
-                      {isLight ? t('studentShell.darkMode') : t('studentShell.lightMode')}
-                    </span>
-                    <span className="hm-mono text-[10px]" style={{ color: 'var(--hm-text-dim)' }}>
-                      {isLight ? t('studentShell.on') : t('studentShell.off')}
-                    </span>
-                  </button>
-                </div>
-
-                {/* ── Sign out ── */}
-                <div className="py-1" style={{ borderTop: '1px solid var(--hm-border)' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenPanel(null)
-                      logout()
-                      navigate('/login', { replace: true })
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors"
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = 'rgba(244,99,110,0.08)')
-                    }
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    style={{ background: 'transparent' }}
-                  >
-                    <span
-                      className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
-                      style={{
-                        background: 'rgba(244,99,110,0.10)',
-                        border: '1px solid rgba(244,99,110,0.20)',
-                      }}
-                    >
-                      <LogOut className="h-3 w-3" style={{ color: '#F4636E' }} />
-                    </span>
-                    <span className="text-[12.5px] font-medium" style={{ color: '#F4636E' }}>
-                      {t('shell.signOut')}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
+            <UserProfileMenu
+              name={displayName}
+              email={displayEmail}
+              initials={displayInitials}
+              profilePath="/student/profile"
+              accentColor={VIOLET}
+              subtitle={roleSubtitle}
+              onLogout={handleLogout}
+            />
           </div>
 
           {/* Hamburger — visible on mobile + tablet (hidden at lg+) */}
@@ -1357,24 +772,7 @@ export default function StudentShell({
                 className="flex items-center gap-2.5"
                 style={{ textDecoration: 'none' }}
               >
-                <span className="hm-mark relative h-7 w-7">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M3 13V3M13 13V3M3 8H13"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      style={{ color: 'var(--hm-violet-2)' }}
-                    />
-                  </svg>
-                </span>
+                <BrandLogo />
                 <span
                   className="text-[15px] font-semibold leading-none"
                   style={{ color: 'var(--hm-text)', letterSpacing: '-0.02em' }}
@@ -1407,17 +805,17 @@ export default function StudentShell({
                     color: 'white',
                   }}
                 >
-                  {t('studentShell.demoInitials')}
+                  {displayInitials}
                 </span>
                 <div className="min-w-0">
                   <p
                     className="text-[13.5px] font-semibold"
                     style={{ color: 'var(--hm-text)', letterSpacing: '-0.012em' }}
                   >
-                    {t('studentShell.demoFullName')}
+                    {displayName}
                   </p>
                   <p className="text-[11.5px]" style={{ color: 'var(--hm-text-dim)' }}>
-                    {t('studentShell.demoEmail')}
+                    {displayEmail}
                   </p>
                 </div>
               </div>
@@ -1443,16 +841,16 @@ export default function StudentShell({
                     className="hm-mono text-[12px] font-semibold"
                     style={{ color: 'var(--hm-violet-2)' }}
                   >
-                    14
+                    XP
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="hm-mono text-[10.5px]" style={{ color: 'var(--hm-text-dim)' }}>
-                    {t('studentShell.xpProgress')}
+                    XP
                   </span>
-                  <div className="hm-progress mt-1.5" style={{ height: 3 }}>
-                    <div className="hm-progress-fill" style={{ width: '78%' }} />
-                  </div>
+                  <p className="text-[12px] font-semibold mt-1" style={{ color: 'var(--hm-text)' }}>
+                    {formatStat(userXp)}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-5">
@@ -1462,16 +860,25 @@ export default function StudentShell({
                     className="hm-mono text-[12px] font-semibold"
                     style={{ color: 'var(--hm-text)' }}
                   >
-                    {t('studentShell.streakLabel')}
+                    {`Karma: ${formatStat(userKarma)}`}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--hm-violet-2)' }} />
+                  <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--hm-amber)' }} />
                   <span
                     className="hm-mono text-[12px] font-semibold"
                     style={{ color: 'var(--hm-text)' }}
                   >
-                    {t('studentShell.karmaLabel')}
+                    {`HMN: ${formatStat(userHmn)}`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CreditCard className="h-3.5 w-3.5" style={{ color: GREEN }} />
+                  <span
+                    className="hm-mono text-[12px] font-semibold"
+                    style={{ color: 'var(--hm-text)' }}
+                  >
+                    {`Credits: ${formatStat(userCredits)}`}
                   </span>
                 </div>
               </div>

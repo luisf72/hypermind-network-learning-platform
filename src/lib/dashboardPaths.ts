@@ -51,3 +51,18 @@ export const ROLE_BASE: Record<string, string> = {
   evaluator: '/creator',
   student: '/student',
 }
+
+export type RoleName = 'student' | 'creator' | 'evaluator' | 'admin'
+
+export const ROLE_PRIORITY: RoleName[] = ['student', 'creator', 'evaluator', 'admin']
+
+export function pickCurrentRole(roles: RoleName[]): RoleName {
+  for (const role of ROLE_PRIORITY) {
+    if (roles.includes(role)) return role
+  }
+  return 'student'
+}
+
+export function getDashboardPathByRole(role: RoleName): string {
+  return ROLE_BASE[role] ?? ROLE_BASE.student
+}

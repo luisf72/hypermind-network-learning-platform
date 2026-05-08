@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
 import { useLangStore } from '@/stores/langStore'
 import { useAuthStore } from '@/stores/authStore'
+import { logoutApi } from '@/api/auth/auth.api'
+import { BrandLogo } from '@/components/BrandLogo'
 
 interface HeaderProps {
   active?: 'courses' | 'assessments' | 'community' | 'home'
@@ -21,6 +23,15 @@ export function Header({ active: activeProp }: HeaderProps = {}) {
   const user = useAuthStore((s) => s.user)
   const activeRole = useAuthStore((s) => s.activeRole)
   const logout = useAuthStore((s) => s.logout)
+  const displayName = user?.name ?? 'User'
+  const displayInitials =
+    user?.initials ||
+    displayName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('')
   const isLight = theme === 'light'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
@@ -43,18 +54,23 @@ export function Header({ active: activeProp }: HeaderProps = {}) {
           : 'home')
 
   const dashHref = user
-    ? activeRole === 'admin'
-      ? '/admin'
+    ? activeRole === 'student'
+      ? '/student'
       : activeRole === 'creator' || activeRole === 'evaluator'
         ? '/creator'
-        : activeRole === 'student'
-          ? '/student'
-          : user.role === 'admin'
-            ? '/admin'
+        : activeRole === 'admin'
+          ? '/admin'
+          : user.role === 'student'
+            ? '/student'
             : user.role === 'creator'
               ? '/creator'
-              : '/student'
+              : '/admin'
     : '/login'
+
+  const handleLogout = async () => {
+    await logoutApi()
+    logout()
+  }
 
   return (
     <>
@@ -73,24 +89,7 @@ export function Header({ active: activeProp }: HeaderProps = {}) {
         <div className="mx-auto flex h-14 w-full max-w-[1280px] items-center gap-6 px-6">
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <span className="hm-mark relative h-7 w-7">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <path
-                  d="M3 13V3M13 13V3M3 8H13"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  style={{ color: 'var(--hm-violet-2)' }}
-                />
-              </svg>
-            </span>
+            <BrandLogo />
             <span
               className="text-[15px] font-semibold leading-none"
               style={{ color: 'var(--hm-text)', letterSpacing: '-0.02em' }}
@@ -208,14 +207,21 @@ export function Header({ active: activeProp }: HeaderProps = {}) {
               <>
                 <Link
                   to={dashHref}
-                  className="h-8 inline-flex items-center rounded-md px-3 text-[13px] font-medium"
+                  className="h-8 inline-flex items-center gap-2 rounded-md px-2.5 text-[13px] font-medium"
                   style={{ color: 'var(--hm-text-muted)' }}
                 >
+                  <span
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] hm-mono font-semibold"
+                    style={{ background: 'var(--hm-violet-soft)', color: 'var(--hm-violet-2)' }}
+                  >
+                    {displayInitials}
+                  </span>
+                  <span className="max-w-24 truncate">{displayName}</span>
                   {t('common.dashboard')}
                 </Link>
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="h-8 inline-flex items-center rounded-lg px-3.5 text-[13px] font-semibold"
                   style={{
                     background: 'var(--hm-violet-2)',
@@ -314,17 +320,7 @@ export function Header({ active: activeProp }: HeaderProps = {}) {
               style={{ height: 56, borderBottom: '1px solid var(--hm-border)' }}
             >
               <div className="flex items-center gap-2.5">
-                <span className="hm-mark relative h-7 w-7">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path
-                      d="M3 13V3M13 13V3M3 8H13"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      style={{ color: 'var(--hm-violet-2)' }}
-                    />
-                  </svg>
-                </span>
+                <BrandLogo />
                 <span
                   className="text-[15px] font-semibold"
                   style={{ color: 'var(--hm-text)', letterSpacing: '-0.02em' }}
@@ -428,15 +424,22 @@ export function Header({ active: activeProp }: HeaderProps = {}) {
                   <Link
                     to={dashHref}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full flex items-center justify-center h-10 rounded-lg text-[13.5px] font-medium"
+                    className="w-full flex items-center justify-center gap-2 h-10 rounded-lg text-[13.5px] font-medium"
                     style={{ color: 'var(--hm-text-muted)', border: '1px solid var(--hm-border)' }}
                   >
+                    <span
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] hm-mono font-semibold"
+                      style={{ background: 'var(--hm-violet-soft)', color: 'var(--hm-violet-2)' }}
+                    >
+                      {displayInitials}
+                    </span>
+                    <span className="truncate max-w-[120px]">{displayName}</span>
                     {t('common.dashboard')}
                   </Link>
                   <button
                     type="button"
                     onClick={() => {
-                      logout()
+                      void handleLogout()
                       setMobileMenuOpen(false)
                     }}
                     className="w-full flex items-center justify-center h-10 rounded-lg text-[13.5px] font-semibold"

@@ -23,6 +23,7 @@ import {
   Globe,
 } from 'lucide-react'
 import StudentShell, { VIOLET, VIOLET_SOFT, VIOLET_GLOW, GREEN, AMBER, BLUE } from './StudentShell'
+import { BrandLogo } from '@/components/BrandLogo'
 
 const TEAL = '#5BC8C5'
 const ROSE = '#F4636E'
@@ -425,16 +426,7 @@ function CertificateDetail({ cert, onBack }: { cert: Certificate; onBack: () => 
                 {/* Header row */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2.5">
-                    <span className="hm-mark h-7 w-7">
-                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                        <path
-                          d="M3 13V3M13 13V3M3 8H13"
-                          stroke={VIOLET}
-                          strokeWidth="1.6"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </span>
+                    <BrandLogo />
                     <div>
                       <p
                         className="text-[13px] font-semibold"

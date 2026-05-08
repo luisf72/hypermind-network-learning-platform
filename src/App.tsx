@@ -2,8 +2,8 @@ import { useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
-import { useAuthStore, type Role } from '@/stores/authStore'
-import { ROLE_BASE } from '@/lib/dashboardPaths'
+import { useAuthStore, type Role, type User } from '@/stores/authStore'
+import { getDashboardPathByRole, pickCurrentRole, type RoleName } from '@/lib/dashboardPaths'
 
 /* Public */
 const Landing = lazy(() => import('./pages/hypermind/Landing'))
@@ -122,19 +122,40 @@ const StudentApplyCreator = lazy(
 )
 const StudentFeedback = lazy(() => import('./pages/hypermind/dashboards/student/StudentFeedback'))
 
+function isRoleName(value: unknown): value is RoleName {
+  return value === 'student' || value === 'creator' || value === 'evaluator' || value === 'admin'
+}
+
+function getNormalizedRoles(user: User): RoleName[] {
+  const fromRoles = Array.isArray(user.roles) ? user.roles.filter(isRoleName) : []
+  if (fromRoles.length > 0) return fromRoles
+  return isRoleName(user.role) ? [user.role] : ['student']
+}
+
+function getPriorityDestination(user: User): string {
+  const priorityRole = pickCurrentRole(getNormalizedRoles(user))
+  return getDashboardPathByRole(priorityRole)
+}
+
+/** Set to true to enforce login + role checks on dashboard routes. */
+const ROUTE_PROTECTION_ENABLED = false
+
 function Protected({ allow, children }: { allow: Role[]; children: React.ReactNode }) {
+  if (!ROUTE_PROTECTION_ENABLED) {
+    return <>{children}</>
+  }
   const user = useAuthStore((s) => s.user)
   const activeRole = useAuthStore((s) => s.activeRole)
   const location = useLocation()
   if (!user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
-  // Treat the evaluator perspective as a creator-routed view.
-  const effective: Role = activeRole === 'evaluator' ? 'creator' : activeRole
+  const priorityDestination = getPriorityDestination(user)
+  const normalizedRoles = getNormalizedRoles(user)
+  const hasActiveRole = activeRole !== 'guest' && normalizedRoles.includes(activeRole)
+  const effective: Role = hasActiveRole ? (activeRole === 'evaluator' ? 'creator' : activeRole) : 'guest'
   if (!allow.includes(effective)) {
-    const dest =
-      effective === 'admin' ? '/admin' : effective === 'creator' ? '/creator' : '/student'
-    return <Navigate to={dest} replace />
+    return <Navigate to={priorityDestination} replace />
   }
   return <>{children}</>
 }
@@ -167,18 +188,25 @@ function Loader() {
 
 function RootRedirect() {
   const user = useAuthStore((s) => s.user)
-  const activeRole = useAuthStore((s) => s.activeRole)
   if (!user) return <Landing />
-  const effective: Role = activeRole === 'evaluator' ? 'creator' : activeRole
-  const dest =
-    effective === 'admin'
-      ? ROLE_BASE.admin
-      : effective === 'creator'
-        ? ROLE_BASE.creator
-        : effective === 'student'
-          ? ROLE_BASE.student
-          : ROLE_BASE[user.role]
+  const dest = getPriorityDestination(user)
   return <Navigate to={dest} replace />
+}
+
+function RolePrefixRedirect() {
+  const location = useLocation()
+  if (!ROUTE_PROTECTION_ENABLED) {
+    const path = location.pathname
+    if (path.startsWith('/admin')) return <Navigate to="/admin" replace />
+    if (path.startsWith('/creator')) return <Navigate to="/creator" replace />
+    if (path.startsWith('/student')) return <Navigate to="/student" replace />
+    return <Navigate to="/" replace />
+  }
+  const user = useAuthStore((s) => s.user)
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+  return <Navigate to={getPriorityDestination(user)} replace />
 }
 
 export default function App() {
@@ -417,6 +445,7 @@ export default function App() {
               </Protected>
             }
           />
+          <Route path="/admin/*" element={<RolePrefixRedirect />} />
 
           {/* Creator */}
           <Route
@@ -523,6 +552,7 @@ export default function App() {
               </Protected>
             }
           />
+          <Route path="/creator/*" element={<RolePrefixRedirect />} />
 
           {/* Student */}
           <Route
@@ -677,6 +707,7 @@ export default function App() {
               </Protected>
             }
           />
+          <Route path="/student/*" element={<RolePrefixRedirect />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

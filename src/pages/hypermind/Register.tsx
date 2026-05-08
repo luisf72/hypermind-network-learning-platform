@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { yupResolver } from '@hookform/resolvers/yup'
+import * as yup from 'yup'
 import { toast } from 'sonner'
 import { Header } from './_shared/Header'
 import { Footer } from './_shared/Footer'
 import { useThemeStore } from '@/stores/themeStore'
+import { REGISTER_TYPE } from '@/api/auth/auth.types'
+import { useRegisterMutation } from '@/api/auth/auth.api'
 import { Mail, Lock, User, ArrowRight, Sparkles, Check, ShieldCheck } from 'lucide-react'
 import { InputField } from './Login'
 import './_group.css'
@@ -54,7 +56,9 @@ const SocialButton = ({
   <button
     type="button"
     onClick={onClick}
-    className="h-11 w-full inline-flex items-center justify-center gap-2.5 rounded-lg text-[13px] font-semibold transition-colors"
+    aria-label={label}
+    title={label}
+    className="h-11 w-full inline-flex items-center justify-center rounded-lg transition-colors"
     style={{
       background: 'var(--hm-bg-card-2)',
       border: '1px solid var(--hm-border)',
@@ -62,7 +66,6 @@ const SocialButton = ({
     }}
   >
     {icon}
-    {label}
   </button>
 )
 
@@ -70,30 +73,35 @@ export default function Register() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const isLight = useThemeStore((s) => s.theme === 'light')
+  const { mutateAsync: registerUser, isPending: isRegistering } = useRegisterMutation()
 
   const [showPw, setShowPw] = useState(false)
   const [showConfirmPw, setShowConfirmPw] = useState(false)
-  const [agreed, setAgreed] = useState(true)
+  const [agreed, setAgreed] = useState(false)
 
-  const schema = z
+  const schema = yup
     .object({
-      name: z.string().min(2, 'Please enter your name'),
-      email: z.string().email('Enter a valid email address'),
-      password: z.string().min(8, 'At least 8 characters'),
-      confirmPassword: z.string().min(1, 'Please confirm your password'),
+      name: yup.string().trim().min(2, 'Please enter your name').required('Please enter your name'),
+      email: yup
+        .string()
+        .trim()
+        .email('Enter a valid email address')
+        .required('Email is required'),
+      password: yup.string().min(8, 'At least 8 characters').required('Password is required'),
+      confirmPassword: yup
+        .string()
+        .required('Please confirm your password')
+        .oneOf([yup.ref('password')], 'Passwords do not match'),
     })
-    .refine((d) => d.password === d.confirmPassword, {
-      path: ['confirmPassword'],
-      message: 'Passwords do not match',
-    })
-  type FormValues = z.infer<typeof schema>
+    .required()
+  type FormValues = yup.InferType<typeof schema>
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: yupResolver(schema),
     defaultValues: { name: '', email: '', password: '', confirmPassword: '' },
   })
 
@@ -102,9 +110,17 @@ export default function Register() {
       toast.error('Please accept the terms to continue')
       return
     }
-    await new Promise((r) => setTimeout(r, 400))
-    toast.success(t('auth.welcomeToast', { name: values.name.split(' ')[0] }))
-    navigate('/login', { replace: true })
+    try {
+      await registerUser({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        registerType: REGISTER_TYPE.EMAIL,
+      })
+      navigate('/login', { replace: true })
+    } catch {
+      // Toast is handled in the auth API mutation.
+    }
   })
 
   return (
@@ -245,11 +261,17 @@ export default function Register() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isRegistering || !agreed}
                   className="hm-btn-primary h-11 w-full justify-center text-[13.5px] font-semibold gap-1.5 mt-2"
-                  style={isSubmitting ? { opacity: 0.7, cursor: 'wait' } : undefined}
+                  style={
+                    isSubmitting || isRegistering
+                      ? { opacity: 0.7, cursor: 'wait' }
+                      : !agreed
+                        ? { opacity: 0.55, cursor: 'not-allowed' }
+                        : undefined
+                  }
                 >
-                  {isSubmitting ? (
+                  {isSubmitting || isRegistering ? (
                     t('auth.submitting')
                   ) : (
                     <>

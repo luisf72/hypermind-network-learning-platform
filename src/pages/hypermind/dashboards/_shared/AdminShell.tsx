@@ -3,7 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
 import { useAuthStore } from '@/stores/authStore'
-import { ADMIN_PATHS, ROLE_BASE } from '@/lib/dashboardPaths'
+import { ADMIN_PATHS, ROLE_BASE, getDashboardPathByRole } from '@/lib/dashboardPaths'
+import { RoleSwitcher } from '@/components/RoleSwitcher'
+import { UserProfileMenu } from '@/components/UserProfileMenu'
+import { BrandLogo } from '@/components/BrandLogo'
 import '../../_group.css'
 import {
   LayoutGrid,
@@ -22,71 +25,19 @@ import {
   Receipt,
   HelpCircle,
   MessageCircle,
-  Sparkles,
   Coins,
   Settings2,
   Award,
   Wallet,
   UserPlus,
-  ChevronDown,
-  LogOut,
-  UserCircle2,
   Star,
   Sun,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
-  Palette,
   ClipboardCheck,
-  ArrowLeftRight,
-  Check,
   type LucideIcon,
 } from 'lucide-react'
-
-/* ── Role switcher data (identical across all authenticated shells) ─ */
-type RoleSwitchId = 'admin' | 'creator' | 'evaluator' | 'student'
-interface RoleSwitchDef {
-  id: RoleSwitchId
-  tKey: string
-  descKey: string
-  Icon: LucideIcon
-  color: string
-  soft: string
-}
-const SWITCH_ROLES: RoleSwitchDef[] = [
-  {
-    id: 'admin',
-    tKey: 'roleSwitch.admin',
-    descKey: 'roleSwitch.descAdmin',
-    Icon: ShieldCheck,
-    color: '#F4636E',
-    soft: 'rgba(244,99,110,0.10)',
-  },
-  {
-    id: 'creator',
-    tKey: 'roleSwitch.creator',
-    descKey: 'roleSwitch.descCreator',
-    Icon: Palette,
-    color: '#F4B26C',
-    soft: 'rgba(244,178,108,0.14)',
-  },
-  {
-    id: 'evaluator',
-    tKey: 'roleSwitch.evaluator',
-    descKey: 'roleSwitch.descEvaluator',
-    Icon: ClipboardCheck,
-    color: '#5BC8C5',
-    soft: 'rgba(91,200,197,0.14)',
-  },
-  {
-    id: 'student',
-    tKey: 'roleSwitch.student',
-    descKey: 'roleSwitch.descStudent',
-    Icon: GraduationCap,
-    color: '#7C5CF6',
-    soft: 'rgba(124,92,246,0.12)',
-  },
-]
 
 const ACCENT = '#F4636E'
 const ACCENT_SOFT = 'rgba(244,99,110,0.10)'
@@ -164,9 +115,9 @@ export default function AdminShell({ activeId, children }: AdminShellProps) {
   const toggleTheme = useThemeStore((s) => s.toggle)
   const isLight = theme === 'light'
   const authUser = useAuthStore((s) => s.user)
+  const activeAuthRole = useAuthStore((s) => s.activeRole)
   const switchAuthRole = useAuthStore((s) => s.switchRole)
   const logout = useAuthStore((s) => s.logout)
-  const [profileOpen, setProfileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
@@ -181,20 +132,23 @@ export default function AdminShell({ activeId, children }: AdminShellProps) {
       setSidebarCollapsed((v) => !v)
     }
   }
-  const [roleOpen, setRoleOpen] = useState(false)
-  const [activeRole, setActiveRole] = useState<RoleSwitchId>('admin')
-  const role = SWITCH_ROLES.find((r) => r.id === activeRole)!
-  const handleRoleSwitch = (id: RoleSwitchId) => {
-    setActiveRole(id)
-    setRoleOpen(false)
-    if (id !== 'admin') {
-      switchAuthRole(id === 'evaluator' ? 'creator' : id)
-      navigate(ROLE_BASE[id])
-    }
+  const handleRoleSwitch = (id: 'admin' | 'creator' | 'evaluator' | 'student') => {
+    const nextRole = switchAuthRole(id)
+    if (nextRole === 'guest') return
+    navigate(getDashboardPathByRole(nextRole))
   }
+  const displayName = authUser?.name ?? 'User'
+  const displayEmail = authUser?.email ?? ''
+  const displayInitials =
+    authUser?.initials ||
+    displayName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('')
   const handleLogout = () => {
     logout()
-    setProfileOpen(false)
     navigate('/login')
   }
 
@@ -238,12 +192,7 @@ export default function AdminShell({ activeId, children }: AdminShellProps) {
             textDecoration: 'none',
           }}
         >
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0"
-            style={{ background: 'var(--hm-grad-primary)', boxShadow: 'var(--hm-glow-violet)' }}
-          >
-            <Sparkles className="h-4 w-4 text-white" />
-          </span>
+          <BrandLogo size={32} />
           {!sidebarCollapsed && (
             <>
               <span
@@ -331,203 +280,11 @@ export default function AdminShell({ activeId, children }: AdminShellProps) {
 
           <div className="flex-1" />
 
-          {/* ─────────── Role switcher ─────────── */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setRoleOpen((v) => !v)}
-              aria-expanded={roleOpen}
-              aria-haspopup="menu"
-              className="flex items-center gap-2 pl-1 pr-2.5 h-8 rounded-full transition-all"
-              style={{
-                background: roleOpen ? role.soft : 'transparent',
-                border: `1px solid ${roleOpen ? role.color + '55' : 'var(--hm-border)'}`,
-                boxShadow: roleOpen ? `0 0 0 3px ${role.color}14` : 'none',
-              }}
-              onMouseEnter={(e) => {
-                if (!roleOpen) {
-                  e.currentTarget.style.background = role.soft
-                  e.currentTarget.style.borderColor = `${role.color}55`
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!roleOpen) {
-                  e.currentTarget.style.background = 'transparent'
-                  e.currentTarget.style.borderColor = 'var(--hm-border)'
-                }
-              }}
-            >
-              <span
-                className="flex h-6 w-6 items-center justify-center rounded-full shrink-0"
-                style={{
-                  background: role.soft,
-                  color: role.color,
-                  boxShadow: `0 0 12px ${role.color}55`,
-                }}
-              >
-                <role.Icon className="h-3 w-3" />
-              </span>
-              <span className="hidden md:flex flex-col items-start leading-tight">
-                <span
-                  className="hm-mono text-[8.5px] font-semibold"
-                  style={{ color: 'var(--hm-text-dim)', letterSpacing: '0.16em' }}
-                >
-                  {t('shell.viewingAs')}
-                </span>
-                <span
-                  className="hm-mono text-[10.5px] font-semibold leading-none"
-                  style={{ color: role.color, letterSpacing: '0.1em' }}
-                >
-                  {t(role.tKey).toUpperCase()}
-                </span>
-              </span>
-              <ChevronDown
-                className="h-3 w-3 transition-transform shrink-0"
-                style={{
-                  color: 'var(--hm-text-dim)',
-                  transform: roleOpen ? 'rotate(180deg)' : 'none',
-                }}
-              />
-            </button>
-
-            {roleOpen && (
-              <>
-                <button
-                  type="button"
-                  aria-label={t('shell.closeRoleMenu')}
-                  onClick={() => setRoleOpen(false)}
-                  className="cursor-default"
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 9980,
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                  }}
-                />
-                <div
-                  role="menu"
-                  className="overflow-hidden rounded-xl"
-                  style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 'calc(100% + 8px)',
-                    width: 300,
-                    zIndex: 9990,
-                    background:
-                      'linear-gradient(180deg, var(--hm-bg-card-2) 0%, var(--hm-bg-card) 100%)',
-                    border: '1px solid var(--hm-border-strong)',
-                    boxShadow: `0 24px 60px -12px rgba(0,0,0,0.75), 0 0 0 1px ${role.color}10`,
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    className="absolute -top-1.5 right-12 h-3 w-3 rotate-45"
-                    style={{
-                      background: 'var(--hm-bg-card-2)',
-                      borderLeft: '1px solid var(--hm-border-strong)',
-                      borderTop: '1px solid var(--hm-border-strong)',
-                    }}
-                  />
-                  <div
-                    className="px-4 py-2.5 flex items-center gap-2"
-                    style={{ borderBottom: '1px solid var(--hm-border)' }}
-                  >
-                    <ArrowLeftRight className="h-3 w-3" style={{ color: 'var(--hm-text-dim)' }} />
-                    <p
-                      className="hm-mono text-[9.5px] font-semibold"
-                      style={{ color: 'var(--hm-text-dim)', letterSpacing: '0.16em' }}
-                    >
-                      {t('shell.switchRole')}
-                    </p>
-                  </div>
-                  {SWITCH_ROLES.map((r) => {
-                    const active = r.id === activeRole
-                    return (
-                      <button
-                        key={r.id}
-                        role="menuitem"
-                        type="button"
-                        onClick={() => handleRoleSwitch(r.id)}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-left relative transition-colors"
-                        style={{
-                          background: active ? r.soft : 'transparent',
-                          borderTop: '1px solid var(--hm-border)',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!active) e.currentTarget.style.background = 'var(--hm-bg-card)'
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!active) e.currentTarget.style.background = 'transparent'
-                        }}
-                      >
-                        {active && (
-                          <span
-                            aria-hidden
-                            style={{
-                              position: 'absolute',
-                              left: 0,
-                              top: 8,
-                              bottom: 8,
-                              width: 3,
-                              background: r.color,
-                              borderRadius: 2,
-                              boxShadow: `0 0 10px ${r.color}`,
-                            }}
-                          />
-                        )}
-                        <span
-                          className="flex h-8 w-8 items-center justify-center rounded-full shrink-0"
-                          style={{
-                            background: r.soft,
-                            color: r.color,
-                            boxShadow: `0 0 14px ${r.color}33`,
-                          }}
-                        >
-                          <r.Icon className="h-3.5 w-3.5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p
-                              className="text-[13px] font-semibold"
-                              style={{ color: active ? r.color : 'var(--hm-text)' }}
-                            >
-                              {t(r.tKey)}
-                            </p>
-                            {active && <Check className="h-3 w-3" style={{ color: r.color }} />}
-                          </div>
-                          <p className="text-[11px]" style={{ color: 'var(--hm-text-dim)' }}>
-                            {t(r.descKey)}
-                          </p>
-                        </div>
-                      </button>
-                    )
-                  })}
-                  <div
-                    className="px-4 py-2.5 flex items-center gap-2"
-                    style={{
-                      borderTop: '1px solid var(--hm-border)',
-                      background: 'var(--hm-bg-card)',
-                    }}
-                  >
-                    <span
-                      className="flex h-5 w-5 items-center justify-center rounded-full hm-mono text-[9px] font-semibold shrink-0"
-                      style={{
-                        background: `linear-gradient(180deg, ${ACCENT} 0%, ${ACCENT}cc 100%)`,
-                        color: 'white',
-                      }}
-                    >
-                      AV
-                    </span>
-                    <p className="text-[11px] truncate" style={{ color: 'var(--hm-text-dim)' }}>
-                      Anya Volkov · anya@hypermind.io
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <RoleSwitcher
+            availableRoles={authUser?.roles ?? []}
+            activeRole={activeAuthRole}
+            onSwitch={handleRoleSwitch}
+          />
 
           {/* Theme toggle */}
           <button
@@ -553,136 +310,15 @@ export default function AdminShell({ activeId, children }: AdminShellProps) {
             {isLight ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
           </button>
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setProfileOpen((v) => !v)}
-              className="flex items-center gap-2.5 pl-1.5 pr-2 py-1 rounded-full transition-colors"
-              style={{
-                background: profileOpen ? 'var(--hm-bg-card)' : 'transparent',
-                border: `1px solid ${profileOpen ? 'var(--hm-border)' : 'transparent'}`,
-              }}
-              aria-expanded={profileOpen}
-              aria-haspopup="menu"
-            >
-              <span
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[11.5px] font-semibold"
-                style={{
-                  background: `linear-gradient(180deg, ${ACCENT} 0%, ${ACCENT}cc 100%)`,
-                  color: 'white',
-                }}
-              >
-                AV
-              </span>
-              <div className="hm-admin-profile-text hidden md:flex flex-col items-start leading-tight">
-                <span className="text-[12.5px] font-semibold" style={{ color: 'var(--hm-text)' }}>
-                  Anya Volkov
-                </span>
-                <span className="text-[10.5px]" style={{ color: 'var(--hm-text-dim)' }}>
-                  {t('shell.platformAdmin')}
-                </span>
-              </div>
-              <ChevronDown
-                className="h-3.5 w-3.5 transition-transform"
-                style={{
-                  color: 'var(--hm-text-dim)',
-                  transform: profileOpen ? 'rotate(180deg)' : 'none',
-                }}
-              />
-            </button>
-
-            {profileOpen && (
-              <>
-                <button
-                  type="button"
-                  aria-label={t('shell.closeMenu')}
-                  onClick={() => setProfileOpen(false)}
-                  className="cursor-default"
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 9980,
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                  }}
-                />
-                <div
-                  role="menu"
-                  className="overflow-hidden rounded-xl"
-                  style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: 'calc(100% + 8px)',
-                    width: 240,
-                    background:
-                      'linear-gradient(180deg, var(--hm-bg-card-2) 0%, var(--hm-bg-card) 100%)',
-                    border: '1px solid var(--hm-border-strong)',
-                    boxShadow: '0 24px 60px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(244,99,110,0.06)',
-                    zIndex: 9990,
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    className="absolute -top-1.5 right-5 h-3 w-3 rotate-45"
-                    style={{
-                      background: 'var(--hm-bg-card-2)',
-                      borderLeft: '1px solid var(--hm-border-strong)',
-                      borderTop: '1px solid var(--hm-border-strong)',
-                    }}
-                  />
-                  <div
-                    className="px-3.5 py-3 flex items-center gap-3"
-                    style={{ borderBottom: '1px solid var(--hm-border)' }}
-                  >
-                    <span
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-[12px] font-semibold"
-                      style={{
-                        background: `linear-gradient(180deg, ${ACCENT} 0%, ${ACCENT}cc 100%)`,
-                        color: 'white',
-                      }}
-                    >
-                      AV
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className="text-[13px] font-semibold truncate"
-                        style={{ color: 'var(--hm-text)' }}
-                      >
-                        Anya Volkov
-                      </p>
-                      <p className="text-[11px] truncate" style={{ color: 'var(--hm-text-dim)' }}>
-                        anya@hypermind.io
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    to="/admin/profile"
-                    role="menuitem"
-                    onClick={() => setProfileOpen(false)}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[12.5px] text-left transition-colors hover:bg-[var(--hm-violet-soft)]"
-                    style={{ color: 'var(--hm-text)' }}
-                  >
-                    <UserCircle2 className="h-4 w-4" style={{ color: 'var(--hm-text-muted)' }} />
-                    {t('shell.viewProfile')}
-                  </Link>
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(false)
-                      handleLogout()
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-[12.5px] text-left transition-colors hover:bg-[var(--hm-violet-soft)]"
-                    style={{ color: ACCENT, borderTop: '1px solid var(--hm-border)' }}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    {t('shell.logOut')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <UserProfileMenu
+            name={displayName}
+            email={displayEmail}
+            initials={displayInitials}
+            profilePath="/admin/profile"
+            accentColor={ACCENT}
+            subtitle={t('shell.platformAdmin')}
+            onLogout={handleLogout}
+          />
         </header>
 
         {/* Scrollable main */}

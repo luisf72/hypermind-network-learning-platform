@@ -23,6 +23,8 @@ interface AdminModalProps {
   width?: number
   submitLabel?: string
   onSubmit?: () => void
+  /** Disables primary / destructive actions while a request is in flight. */
+  submitBusy?: boolean
   destructive?: { label: string; onClick?: () => void }
   children: ReactNode
 }
@@ -37,17 +39,18 @@ export default function AdminModal({
   width = 560,
   submitLabel,
   onSubmit,
+  submitBusy = false,
   destructive,
   children,
 }: AdminModalProps) {
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && !submitBusy) onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, submitBusy])
 
   if (!open) return null
 
@@ -129,12 +132,15 @@ export default function AdminModal({
             {destructive && (
               <button
                 type="button"
+                disabled={submitBusy}
                 onClick={destructive.onClick ?? onClose}
                 className="inline-flex items-center px-3 h-9 rounded-lg text-[12px] font-medium"
                 style={{
                   background: 'transparent',
                   border: `1px solid ${ACCENT}40`,
                   color: ACCENT,
+                  opacity: submitBusy ? 0.5 : 1,
+                  cursor: submitBusy ? 'not-allowed' : 'pointer',
                 }}
               >
                 {destructive.label}
@@ -144,24 +150,30 @@ export default function AdminModal({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              disabled={submitBusy}
               onClick={onClose}
               className="inline-flex items-center px-3.5 h-9 rounded-lg text-[12.5px] font-medium"
               style={{
                 background: 'var(--hm-bg-card)',
                 border: '1px solid var(--hm-border)',
                 color: 'var(--hm-text-muted)',
+                opacity: submitBusy ? 0.6 : 1,
+                cursor: submitBusy ? 'not-allowed' : 'pointer',
               }}
             >
               Cancel
             </button>
             <button
               type="button"
+              disabled={submitBusy}
               onClick={onSubmit ?? onClose}
               className="inline-flex items-center px-4 h-9 rounded-lg text-[12.5px] font-semibold"
               style={{
                 background: `linear-gradient(180deg, ${ACCENT} 0%, ${ACCENT}d9 100%)`,
                 color: 'white',
                 boxShadow: `0 8px 24px -8px ${ACCENT}66`,
+                opacity: submitBusy ? 0.65 : 1,
+                cursor: submitBusy ? 'not-allowed' : 'pointer',
               }}
             >
               {computedSubmit}
@@ -290,21 +302,47 @@ export function Select({
 
 export function Toggle({
   defaultChecked = false,
+  checked,
+  onCheckedChange,
   label,
 }: {
   defaultChecked?: boolean
+  checked?: boolean
+  onCheckedChange?: (value: boolean) => void
   label?: string
 }) {
-  // Simple uncontrolled toggle for mockup purposes — flips visual state on click
-  return <ToggleImpl defaultChecked={defaultChecked} label={label} />
+  const controlled = checked !== undefined
+  return (
+    <ToggleImpl
+      defaultChecked={defaultChecked}
+      checked={controlled ? checked : undefined}
+      onCheckedChange={onCheckedChange}
+      label={label}
+    />
+  )
 }
 
-function ToggleImpl({ defaultChecked, label }: { defaultChecked: boolean; label?: string }) {
-  const [on, setOn] = useState(defaultChecked)
+function ToggleImpl({
+  defaultChecked,
+  checked,
+  onCheckedChange,
+  label,
+}: {
+  defaultChecked: boolean
+  checked?: boolean
+  onCheckedChange?: (value: boolean) => void
+  label?: string
+}) {
+  const [internal, setInternal] = useState(defaultChecked)
+  const on = checked !== undefined ? checked : internal
+  const set = (next: boolean) => {
+    onCheckedChange?.(next)
+    if (checked === undefined) setInternal(next)
+  }
   return (
     <button
       type="button"
-      onClick={() => setOn((v) => !v)}
+      onClick={() => set(!on)}
       className="inline-flex items-center gap-2.5"
       role="switch"
       aria-checked={on}

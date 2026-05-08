@@ -1,5 +1,6 @@
 import type { ReactNode, ComponentType } from 'react'
-import { Sparkles, Search, Bell, ChevronDown } from 'lucide-react'
+import { Search, Bell, ChevronDown } from 'lucide-react'
+import { BrandLogo } from '@/components/BrandLogo'
 import '../../_group.css'
 
 export interface DashNavItem {
@@ -60,12 +61,7 @@ export function DashboardShell({
             className="flex items-center gap-2.5 px-5"
             style={{ height: 64, borderBottom: '1px solid var(--hm-border)' }}
           >
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ background: 'var(--hm-grad-primary)', boxShadow: 'var(--hm-glow-violet)' }}
-            >
-              <Sparkles className="h-4 w-4 text-white" />
-            </span>
+            <BrandLogo size={32} />
             <span
               className="text-[16px] font-semibold tracking-tight"
               style={{ fontFamily: 'var(--hm-font-display)', color: 'var(--hm-text)' }}

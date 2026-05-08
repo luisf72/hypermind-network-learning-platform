@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { toast } from 'sonner'
 import { Header } from './_shared/Header'
 import { Footer } from './_shared/Footer'
-import { useAuthStore } from '@/stores/authStore'
 import { useThemeStore } from '@/stores/themeStore'
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Check } from 'lucide-react'
+import { useLoginMutation } from '@/api/auth/auth.api'
+import { getDashboardPathByRole, pickCurrentRole } from '@/lib/dashboardPaths'
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import './_group.css'
 
 const GoogleIcon = () => (
@@ -46,14 +46,10 @@ export default function Login() {
   const { t } = useTranslation()
   const theme = useThemeStore((s) => s.theme)
   const isLight = theme === 'light'
-  const login = useAuthStore((s) => s.login)
+  const { mutateAsync: loginUser, isPending: isLoggingIn } = useLoginMutation()
   const navigate = useNavigate()
-  const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from
 
   const [showPw, setShowPw] = useState(false)
-  const [remember, setRemember] = useState(true)
-  const [topError, setTopError] = useState<string | null>(null)
 
   const schema = z.object({
     email: z.string().min(1, t('auth.enterCreds')).email(t('auth.enterCreds')),
@@ -71,15 +67,14 @@ export default function Login() {
   })
 
   const onSubmit = handleSubmit(async ({ email, password }) => {
-    setTopError(null)
     try {
-      const u = await login(email, password)
-      toast.success(t('auth.welcomeToast', { name: u.name.split(' ')[0] }))
-      const dest =
-        from ?? (u.role === 'admin' ? '/admin' : u.role === 'creator' ? '/creator' : '/student')
+      const { user: authUser } = await loginUser({ email, password })
+      const apiRoles = authUser.roles.map((role) => role.name)
+      const currentRole = pickCurrentRole(apiRoles)
+      const dest = getDashboardPathByRole(currentRole)
       navigate(dest, { replace: true })
-    } catch (err) {
-      setTopError(err instanceof Error ? err.message : t('auth.signInFailed'))
+    } catch {
+      // API errors are surfaced via toast inside useLoginMutation.
     }
   })
 
@@ -138,12 +133,12 @@ export default function Login() {
                 <SocialButton
                   icon={<GoogleIcon />}
                   label={t('auth.google')}
-                  onClick={() => toast.info(t('auth.socialDemoToast'))}
+                  onClick={() => {}}
                 />
                 <SocialButton
                   icon={<FacebookIcon />}
                   label={t('auth.facebook')}
-                  onClick={() => toast.info(t('auth.socialDemoToast'))}
+                  onClick={() => {}}
                 />
               </div>
 
@@ -170,37 +165,7 @@ export default function Login() {
                   error={errors.password?.message}
                 />
 
-                {topError && (
-                  <p className="text-[12.5px] -mt-1" style={{ color: 'var(--hm-pink, #F4636E)' }}>
-                    {topError}
-                  </p>
-                )}
-
-                <p className="text-[11.5px] hm-mono" style={{ color: 'var(--hm-text-dim)' }}>
-                  {t('auth.demoHint')}
-                </p>
-
-                <div className="flex items-center justify-between pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setRemember((r) => !r)}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <span
-                      className="w-4 h-4 rounded shrink-0 flex items-center justify-center transition-colors"
-                      style={{
-                        background: remember ? 'var(--hm-violet-2)' : 'var(--hm-bg-card-2)',
-                        border: `1px solid ${remember ? 'var(--hm-violet-2)' : 'var(--hm-border)'}`,
-                      }}
-                    >
-                      {remember && (
-                        <Check className="w-3 h-3" style={{ color: '#fff' }} strokeWidth={3} />
-                      )}
-                    </span>
-                    <span className="text-[12.5px]" style={{ color: 'var(--hm-text-muted)' }}>
-                      {t('auth.rememberMe')}
-                    </span>
-                  </button>
+                <div className="flex items-center justify-end pt-1">
                   <Link to="/forgot-password" className="hm-link text-[12.5px]">
                     {t('auth.forgot')}
                   </Link>
@@ -208,11 +173,11 @@ export default function Login() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isLoggingIn}
                   className="hm-btn-primary h-11 w-full justify-center text-[13.5px] font-semibold gap-1.5 mt-2"
-                  style={isSubmitting ? { opacity: 0.7, cursor: 'wait' } : undefined}
+                  style={isSubmitting || isLoggingIn ? { opacity: 0.7, cursor: 'wait' } : undefined}
                 >
-                  {isSubmitting ? (
+                  {isSubmitting || isLoggingIn ? (
                     t('auth.submitting')
                   ) : (
                     <>
@@ -254,7 +219,9 @@ function SocialButton({
     <button
       type="button"
       onClick={onClick}
-      className="h-11 w-full inline-flex items-center justify-center gap-2.5 rounded-lg text-[13px] font-semibold transition-colors"
+      aria-label={label}
+      title={label}
+      className="h-11 w-full inline-flex items-center justify-center rounded-lg transition-colors"
       style={{
         background: 'var(--hm-bg-card-2)',
         border: '1px solid var(--hm-border)',
@@ -270,7 +237,6 @@ function SocialButton({
       }}
     >
       {icon}
-      {label}
     </button>
   )
 }

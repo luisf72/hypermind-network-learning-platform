@@ -15,7 +15,13 @@ export default defineConfig({
     port: 4000,
     strictPort: true,
     allowedHosts: true,
-    hmr: { clientPort: 443 },
+    // HMR / Fast Refresh are enabled by default (React plugin). `watch` only tweaks file discovery.
+    watch: {
+      usePolling: process.env.CHOKIDAR_USEPOLLING === '1',
+      ...(process.env.CHOKIDAR_USEPOLLING === '1'
+        ? { interval: 300, binaryInterval: 1000 }
+        : {}),
+    },
   },
   preview: {
     host: '0.0.0.0',

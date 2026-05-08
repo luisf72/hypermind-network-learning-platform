@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Header } from './_shared/Header'
 import { Footer } from './_shared/Footer'
+import { useThemeStore } from '@/stores/themeStore'
 import {
   ArrowRight,
   Sparkles,
@@ -32,16 +33,15 @@ import {
 import './_group.css'
 
 export default function Landing() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const theme = useThemeStore((s) => s.theme)
   const isLight = theme === 'light'
-  const toggleTheme = () => setTheme(isLight ? 'dark' : 'light')
 
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('yearly')
 
   return (
     <div className={`hm-root ${isLight ? 'hm-light' : ''}`}>
-      <Header active="home" theme={theme} onThemeToggle={toggleTheme} />
+      <Header active="home" />
 
       <main className="flex flex-col items-center w-full">
         {/* ═════════ 1 · HERO BANNER ═════════ */}

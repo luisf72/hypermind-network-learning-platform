@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react'
 import type React from 'react'
-import { Search, Plus, Filter, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  Search,
+  Plus,
+  Filter,
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react'
 
 const ACCENT = '#F4636E'
 const ACCENT_SOFT = 'rgba(244,99,110,0.10)'
@@ -105,6 +113,18 @@ export interface Column<T> {
   align?: 'left' | 'right' | 'center'
   render?: (row: T, idx: number) => ReactNode
   mono?: boolean
+  /** Allow line wrap in the cell (e.g. multiple pills). Default: nowrap. */
+  cellWrap?: boolean
+}
+
+/** Server-driven pagination (e.g. API `meta` + `onPageChange`). */
+export interface TablePaginationConfig {
+  page: number
+  totalPages: number
+  totalItems: number
+  itemCount: number
+  pageSize: number
+  onPageChange: (page: number) => void
 }
 
 export interface AdminTableProps<T> {
@@ -113,12 +133,24 @@ export interface AdminTableProps<T> {
   subtitle?: string
   primaryAction?: { label: string; icon?: any; onClick?: () => void }
   searchPlaceholder?: string
+  /** Controlled search (required together with `onSearchChange` for live search). */
+  searchValue?: string
+  onSearchChange?: (value: string) => void
   filters?: string[]
+  /** When true, filter chips are visible but not clickable (placeholders). */
+  filtersDisabled?: boolean
   filterControls?: React.ReactNode
   columns: Column<T>[]
   rows: T[]
   totalCount?: number
   pageInfo?: { current: number; total: number }
+  /** When set, footer pagination is wired and range text uses server totals. */
+  pagination?: TablePaginationConfig | null
+  /** Full initial load (no cached data yet). */
+  isLoading?: boolean
+  /** Background refetch (e.g. pagination / search). */
+  isFetching?: boolean
+  emptyMessage?: string
   showActionsCol?: boolean
   onRowClick?: (row: T) => void
   onRowAction?: (row: T) => void
@@ -131,18 +163,49 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
     subtitle,
     primaryAction,
     searchPlaceholder = 'Search…',
+    searchValue,
+    onSearchChange,
     filters = [],
+    filtersDisabled = false,
     filterControls,
     columns,
     rows,
     totalCount,
     pageInfo,
+    pagination,
+    isLoading = false,
+    isFetching = false,
+    emptyMessage = 'No records found.',
     showActionsCol = true,
     onRowClick,
     onRowAction,
   } = props
 
   const PrimaryIcon = primaryAction?.icon ?? Plus
+  const colSpan = columns.length + (showActionsCol ? 1 : 0)
+
+  const footerFromPagination = pagination
+    ? {
+        current: Math.max(1, pagination.page),
+        total: Math.max(1, pagination.totalPages),
+        shownStart:
+          pagination.totalItems === 0
+            ? 0
+            : (pagination.page - 1) * pagination.pageSize + 1,
+        shownEnd:
+          pagination.totalItems === 0
+            ? 0
+            : Math.min(
+                (pagination.page - 1) * pagination.pageSize + pagination.itemCount,
+                pagination.totalItems
+              ),
+        totalCount: pagination.totalItems,
+        onPageChange: pagination.onPageChange,
+      }
+    : null
+
+  const showFooter =
+    !!footerFromPagination || (rows.length > 0 && !!pageInfo && !pagination)
 
   return (
     <>
@@ -187,13 +250,28 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
 
       {/* Table card */}
       <div
-        className="hm-card rounded-2xl overflow-hidden"
+        className="hm-card rounded-2xl overflow-hidden relative"
         style={{
           background: 'var(--hm-bg-card)',
           border: '1px solid var(--hm-border)',
           boxShadow: 'var(--hm-shadow-card)',
         }}
       >
+        {isFetching && !isLoading && (
+          <div
+            className="absolute top-0 left-0 right-0 z-20 h-0.5 overflow-hidden pointer-events-none"
+            style={{ background: 'var(--hm-border)' }}
+            aria-hidden
+          >
+            <div
+              className="h-full w-1/3 rounded-full"
+              style={{
+                background: ACCENT,
+                animation: 'hm-shimmer-bar 1.1s ease-in-out infinite',
+              }}
+            />
+          </div>
+        )}
         {/* Toolbar */}
         <div
           className="flex items-center justify-between gap-3 px-5 py-3.5 flex-wrap"
@@ -212,8 +290,11 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
               <Search className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--hm-text-dim)' }} />
               <input
                 placeholder={searchPlaceholder}
-                className="flex-1 bg-transparent outline-none text-[12px]"
+                value={onSearchChange ? (searchValue ?? '') : undefined}
+                onChange={onSearchChange ? (e) => onSearchChange(e.target.value) : undefined}
+                className="flex-1 bg-transparent outline-none text-[12px] min-w-0"
                 style={{ color: 'var(--hm-text)' }}
+                aria-busy={isFetching}
               />
             </div>
             {filterControls
@@ -221,11 +302,15 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
               : filters.map((f) => (
                   <button
                     key={f}
+                    type="button"
+                    disabled={filtersDisabled}
                     className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-[11.5px]"
                     style={{
                       background: 'var(--hm-bg-card-2)',
                       border: '1px solid var(--hm-border)',
                       color: 'var(--hm-text-muted)',
+                      opacity: filtersDisabled ? 0.55 : 1,
+                      cursor: filtersDisabled ? 'not-allowed' : 'pointer',
                     }}
                   >
                     <Filter className="h-3 w-3" />
@@ -235,8 +320,12 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
           </div>
           {totalCount !== undefined && (
             <span
-              className="hm-mono text-[10.5px]"
-              style={{ color: 'var(--hm-text-dim)', letterSpacing: '0.10em' }}
+              className="hm-mono text-[10.5px] transition-opacity"
+              style={{
+                color: 'var(--hm-text-dim)',
+                letterSpacing: '0.10em',
+                opacity: isFetching ? 0.65 : 1,
+              }}
             >
               {totalCount.toLocaleString()} TOTAL
             </span>
@@ -244,8 +333,40 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto hm-scroll">
-          <table className="w-full text-[12.5px]" style={{ minWidth: 720 }}>
+        <div
+          className="overflow-x-auto hm-scroll relative"
+          style={isLoading ? { minHeight: 'min(62vh, 520px)' } : undefined}
+        >
+          {isLoading && (
+            <div
+              className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 px-6"
+              style={{
+                minHeight: 'min(62vh, 520px)',
+                background: 'color-mix(in srgb, var(--hm-bg-card) 88%, transparent)',
+                backdropFilter: 'blur(6px)',
+              }}
+              role="status"
+              aria-live="polite"
+              aria-label="Loading"
+            >
+              <Loader2
+                className="h-9 w-9 animate-spin"
+                style={{ color: ACCENT }}
+                aria-hidden
+              />
+              <p className="text-[12.5px] font-medium" style={{ color: 'var(--hm-text-muted)' }}>
+                Loading…
+              </p>
+            </div>
+          )}
+          <table
+            className="w-full text-[12.5px] transition-opacity"
+            style={{
+              minWidth: 720,
+              opacity: isLoading ? 0.35 : 1,
+              pointerEvents: isLoading ? 'none' : undefined,
+            }}
+          >
             <thead>
               <tr style={{ background: 'var(--hm-bg-card-2)' }}>
                 {columns.map((c, ci) => (
@@ -277,11 +398,24 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
               </tr>
             </thead>
             <tbody>
+              {!isLoading && rows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={colSpan}
+                    className="px-5 py-12 text-center text-[13px]"
+                    style={{ color: 'var(--hm-text-muted)' }}
+                  >
+                    {emptyMessage}
+                  </td>
+                </tr>
+              )}
               {rows.map((row, ri) => {
                 const clickable = !!onRowClick
+                const rowKey =
+                  typeof row.id === 'string' || typeof row.id === 'number' ? String(row.id) : ri
                 return (
                   <tr
-                    key={ri}
+                    key={rowKey}
                     onClick={clickable ? () => onRowClick!(row) : undefined}
                     className={clickable ? 'hm-admin-row-clickable' : undefined}
                     style={{
@@ -295,11 +429,11 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
                       return (
                         <td
                           key={ci}
-                          className={`px-5 py-3 align-middle ${c.mono ? 'hm-mono text-[11.5px]' : ''}`}
+                          className={`px-5 py-3 ${c.cellWrap ? 'align-top' : 'align-middle'} ${c.mono ? 'hm-mono text-[11.5px]' : ''}`}
                           style={{
                             textAlign: c.align ?? 'left',
                             color: c.mono ? 'var(--hm-text-dim)' : 'var(--hm-text)',
-                            whiteSpace: 'nowrap',
+                            whiteSpace: c.cellWrap ? 'normal' : 'nowrap',
                           }}
                         >
                           {content}
@@ -335,17 +469,32 @@ export default function AdminTable<T extends Record<string, any>>(props: AdminTa
           </table>
         </div>
 
-        {/* Footer — always visible when rows exist */}
-        {rows.length > 0 && (
-          <Pagination
-            current={pageInfo?.current ?? 1}
-            total={pageInfo?.total ?? 1}
-            shownStart={1}
-            shownEnd={rows.length}
-            totalCount={totalCount ?? rows.length}
-          />
-        )}
+        {showFooter &&
+          (footerFromPagination ? (
+            <Pagination
+              current={footerFromPagination.current}
+              total={footerFromPagination.total}
+              shownStart={footerFromPagination.shownStart}
+              shownEnd={footerFromPagination.shownEnd}
+              totalCount={footerFromPagination.totalCount}
+              onPageChange={footerFromPagination.onPageChange}
+            />
+          ) : (
+            <Pagination
+              current={pageInfo?.current ?? 1}
+              total={pageInfo?.total ?? 1}
+              shownStart={1}
+              shownEnd={rows.length}
+              totalCount={totalCount ?? rows.length}
+            />
+          ))}
       </div>
+      <style>{`
+        @keyframes hm-shimmer-bar {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(400%); }
+        }
+      `}</style>
     </>
   )
 }
@@ -356,12 +505,14 @@ function Pagination({
   shownStart,
   shownEnd,
   totalCount,
+  onPageChange,
 }: {
   current: number
   total: number
   shownStart: number
   shownEnd: number
   totalCount: number
+  onPageChange?: (page: number) => void
 }) {
   const pages = buildPageList(current, total)
   const isFirst = current <= 1
@@ -380,7 +531,11 @@ function Pagination({
         {totalCount.toLocaleString()}
       </span>
       <div className="flex items-center gap-1">
-        <PageBtn ariaLabel="Previous page" disabled={isFirst}>
+        <PageBtn
+          ariaLabel="Previous page"
+          disabled={isFirst || !onPageChange}
+          onClick={onPageChange && !isFirst ? () => onPageChange(current - 1) : undefined}
+        >
           <ChevronLeft className="h-3.5 w-3.5" />
         </PageBtn>
         {pages.map((p, i) =>
@@ -393,12 +548,22 @@ function Pagination({
               …
             </span>
           ) : (
-            <PageBtn key={p} ariaLabel={`Page ${p}`} active={p === current}>
+            <PageBtn
+              key={p}
+              ariaLabel={`Page ${p}`}
+              active={p === current}
+              disabled={!onPageChange}
+              onClick={onPageChange ? () => onPageChange(p) : undefined}
+            >
               <span className="hm-mono text-[11px]">{p}</span>
             </PageBtn>
           )
         )}
-        <PageBtn ariaLabel="Next page" disabled={isLast}>
+        <PageBtn
+          ariaLabel="Next page"
+          disabled={isLast || !onPageChange}
+          onClick={onPageChange && !isLast ? () => onPageChange(current + 1) : undefined}
+        >
           <ChevronRight className="h-3.5 w-3.5" />
         </PageBtn>
       </div>
@@ -411,16 +576,20 @@ function PageBtn({
   ariaLabel,
   active = false,
   disabled = false,
+  onClick,
 }: {
   children: ReactNode
   ariaLabel: string
   active?: boolean
   disabled?: boolean
+  onClick?: () => void
 }) {
   return (
     <button
+      type="button"
       aria-label={ariaLabel}
       disabled={disabled}
+      onClick={onClick}
       className="h-7 min-w-[28px] px-1.5 rounded-md inline-flex items-center justify-center transition-colors"
       style={{
         background: active ? ACCENT_SOFT : 'var(--hm-bg-card)',
