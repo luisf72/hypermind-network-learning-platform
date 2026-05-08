@@ -1,0 +1,68 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+coverage/
+.turbo/
+.cache/
+.parcel-cache/
+.vite/
+
+# Logs and runtime files
+logs/
+*.log
+*.out
+*.err
+*.pid
+*.seed
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+*.local
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Package manager artifacts
+.pnp
+.pnp.js
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Test and tooling artifacts
+.nyc_output/
+.eslintcache
+.stylelintcache
+playwright-report/
+test-results/
+*.lcov
+
+# IDE/editor files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini

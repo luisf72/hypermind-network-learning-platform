@@ -1,0 +1,873 @@
+/* HyperMind shared design tokens — modern editorial aesthetic */
+
+.hm-root {
+  /* Surfaces — near-black with subtle warmth */
+  --hm-bg: #06070d;
+  --hm-bg-elev: #0b0d17;
+  --hm-bg-card: #0e101d;
+  --hm-bg-card-2: #131527;
+
+  /* Borders — neutral white-alpha */
+  --hm-border: rgba(255, 255, 255, 0.06);
+  --hm-border-strong: rgba(255, 255, 255, 0.1);
+  --hm-border-accent: rgba(167, 139, 250, 0.24);
+
+  /* Text — restrained scale */
+  --hm-text: #f4f4f8;
+  --hm-text-muted: #9499ab;
+  --hm-text-dim: #5c6075;
+
+  /* Primary accent — single violet */
+  --hm-violet: #8b5cf6;
+  --hm-violet-2: #a78bfa;
+  --hm-violet-soft: rgba(167, 139, 250, 0.1);
+
+  /* Warm secondary — used very sparingly for editorial pop */
+  --hm-amber: #f4b26c;
+  --hm-amber-soft: rgba(244, 178, 108, 0.1);
+
+  /* Legacy color slots */
+  --hm-blue: #6e89c9;
+  --hm-cyan: #7bc8c5;
+  --hm-pink: #c879d6;
+
+  /* Restrained gradients */
+  --hm-grad-primary: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
+  --hm-grad-soft: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.12) 0%,
+    rgba(139, 92, 246, 0.02) 100%
+  );
+
+  /* Editorial mesh background — violet, warm amber, deep base */
+  --hm-grad-page:
+    radial-gradient(70% 50% at 90% 0%, rgba(139, 92, 246, 0.13) 0%, transparent 60%),
+    radial-gradient(50% 40% at 10% 110%, rgba(244, 178, 108, 0.05) 0%, transparent 65%),
+    radial-gradient(60% 45% at 50% 50%, rgba(110, 137, 201, 0.04) 0%, transparent 70%), #06070d;
+
+  /* Shadows */
+  --hm-shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px -16px rgba(0, 0, 0, 0.7);
+  --hm-shadow-elev: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 48px -24px rgba(0, 0, 0, 0.8);
+  --hm-shadow-pill:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 24px -8px rgba(139, 92, 246, 0.45), 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+  --hm-glow-violet: 0 8px 24px -10px rgba(139, 92, 246, 0.55);
+  --hm-glow-violet-soft: 0 4px 16px -6px rgba(139, 92, 246, 0.3);
+
+  /* Geometric scale */
+  --hm-radius-sm: 8px;
+  --hm-radius: 16px;
+  --hm-radius-lg: 22px;
+  --hm-radius-pill: 999px;
+
+  /* Typography */
+  --hm-font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --hm-font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --hm-font-serif: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+  --hm-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  background: var(--hm-grad-page);
+  color: var(--hm-text);
+  font-family: var(--hm-font-body);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Subtle dot grid baked into every page */
+.hm-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.035) 1px,
+    transparent 0
+  );
+  background-size: 32px 32px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 100% 80% at 50% 0%, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 100% 80% at 50% 0%, black 30%, transparent 80%);
+  z-index: 0;
+}
+
+.hm-root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* LIGHT THEME */
+.hm-root.hm-light {
+  --hm-bg: #fafafc;
+  --hm-bg-elev: #ffffff;
+  --hm-bg-card: #ffffff;
+  --hm-bg-card-2: #f3f3f8;
+  --hm-border: rgba(20, 18, 60, 0.07);
+  --hm-border-strong: rgba(20, 18, 60, 0.13);
+  --hm-border-accent: rgba(124, 92, 252, 0.22);
+  --hm-text: #0e1024;
+  --hm-text-muted: #4f5366;
+  --hm-text-dim: #8a8e9f;
+  --hm-violet-soft: rgba(139, 92, 246, 0.08);
+  --hm-amber-soft: rgba(244, 178, 108, 0.12);
+
+  --hm-grad-page:
+    radial-gradient(70% 50% at 90% 0%, rgba(139, 92, 246, 0.07) 0%, transparent 60%),
+    radial-gradient(50% 40% at 10% 110%, rgba(244, 178, 108, 0.05) 0%, transparent 65%), #fafafc;
+
+  --hm-shadow-card: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 8px 24px -12px rgba(20, 18, 60, 0.1);
+  --hm-shadow-elev:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 16px 36px -16px rgba(20, 18, 60, 0.14);
+  --hm-shadow-pill:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset, 0 6px 18px -6px rgba(139, 92, 246, 0.35),
+    0 2px 8px -2px rgba(20, 18, 60, 0.08);
+  --hm-glow-violet: 0 6px 18px -8px rgba(139, 92, 246, 0.3);
+}
+
+.hm-root.hm-light::before {
+  background-image: radial-gradient(circle at 1px 1px, rgba(20, 18, 60, 0.06) 1px, transparent 0);
+}
+
+/* Light-mode utility overrides */
+.hm-root.hm-light .hm-grid-bg {
+  background-image: radial-gradient(circle at 1px 1px, rgba(20, 18, 60, 0.06) 1px, transparent 0);
+}
+.hm-root.hm-light .hm-mark {
+  background: linear-gradient(180deg, #ffffff 0%, #f2f2f7 100%);
+  border: 1px solid var(--hm-border-accent);
+}
+.hm-root.hm-light .hm-btn-ghost:hover {
+  background: rgba(20, 18, 60, 0.04);
+  border-color: rgba(20, 18, 60, 0.2);
+}
+.hm-root.hm-light .hm-card,
+.hm-root.hm-light .hm-card-elev {
+  background: var(--hm-bg-card);
+  border-color: var(--hm-border);
+}
+.hm-root.hm-light .hm-glass {
+  background: rgba(255, 255, 255, 0.65);
+  border-color: var(--hm-border-strong);
+}
+
+/* Typography */
+.hm-root h1,
+.hm-root h2,
+.hm-root h3,
+.hm-root h4,
+.hm-root h5 {
+  font-family: var(--hm-font-display);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+}
+.hm-root h1 {
+  letter-spacing: -0.034em;
+  line-height: 1.02;
+}
+.hm-root p {
+  line-height: 1.6;
+}
+
+/* Editorial serif italic — used to add humanity to one word in a headline */
+.hm-serif-italic {
+  font-family: var(--hm-font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+}
+
+/* Eyebrow / kicker */
+.hm-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hm-violet-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.hm-eyebrow::before {
+  content: '';
+  width: 22px;
+  height: 1px;
+  background: var(--hm-violet-2);
+  opacity: 0.6;
+}
+
+/* Cards */
+.hm-card {
+  background: var(--hm-bg-card);
+  border: 1px solid var(--hm-border);
+  border-radius: var(--hm-radius);
+  box-shadow: var(--hm-shadow-card);
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.hm-card-hover:hover {
+  border-color: var(--hm-border-accent);
+  transform: translateY(-2px);
+  box-shadow: var(--hm-shadow-card), var(--hm-glow-violet-soft);
+}
+.hm-card-elev {
+  background: var(--hm-bg-card);
+  border: 1px solid var(--hm-border-strong);
+  border-radius: var(--hm-radius);
+  box-shadow: var(--hm-shadow-elev);
+}
+
+/* Glass surface — for floating chrome (header pill, sticky cards) */
+.hm-glass {
+  background: rgba(14, 16, 29, 0.72);
+  border: 1px solid var(--hm-border-strong);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+/* Buttons — pill-shaped, refined */
+.hm-btn-primary {
+  background: var(--hm-violet);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--hm-radius-pill);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: -0.005em;
+  box-shadow: var(--hm-shadow-pill);
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.hm-btn-primary:hover {
+  background: #7c3ff2;
+  box-shadow:
+    var(--hm-shadow-pill),
+    0 12px 28px -8px rgba(139, 92, 246, 0.55);
+}
+.hm-btn-primary:active {
+  transform: translateY(0.5px);
+}
+
+.hm-btn-ghost {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--hm-text);
+  border: 1px solid var(--hm-border-strong);
+  border-radius: var(--hm-radius-pill);
+  font-weight: 500;
+  font-size: 14px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.hm-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Subtle gradient text — used very rarely on hero */
+.hm-grad-text {
+  background: linear-gradient(180deg, #f4f4f8 0%, #b5a8e6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+.hm-root.hm-light .hm-grad-text {
+  background: linear-gradient(180deg, #14123c 0%, #6d28d9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Hairline divider */
+.hm-divider {
+  height: 1px;
+  background: var(--hm-border);
+}
+.hm-divider-fade {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hm-border-strong), transparent);
+}
+
+/* Soft dot pattern */
+.hm-grid-bg {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.05) 1px,
+    transparent 0
+  );
+  background-size: 24px 24px;
+}
+
+/* Subtle accent ring */
+.hm-ring-violet {
+  box-shadow:
+    0 0 0 1px var(--hm-border-accent),
+    var(--hm-shadow-card);
+}
+
+/* Brand mark — small monogram tile */
+.hm-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #14172a 0%, #0f1120 100%);
+  border: 1px solid var(--hm-border-accent);
+  position: relative;
+}
+.hm-mark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.12), transparent 60%);
+  pointer-events: none;
+}
+
+/* Number tag — for editorial section numbering */
+.hm-num {
+  font-family: var(--hm-font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--hm-violet-2);
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+/* Animated underline link */
+.hm-link {
+  color: var(--hm-violet-2);
+  font-weight: 500;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hm-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
+.hm-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* Scrollbar hide utility */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================
+   SKILL-CHAIN DESIGN SYSTEM — gamified / blockchain / AI motifs
+   ============================================================ */
+
+/* Mono utility */
+.hm-mono {
+  font-family: var(--hm-font-mono);
+  font-feature-settings: 'zero', 'ss02';
+}
+
+/* Hash code — used for course IDs, instructor handles, cert IDs */
+.hm-hash {
+  font-family: var(--hm-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--hm-violet-2);
+  opacity: 0.85;
+  background: var(--hm-violet-soft);
+  border: 1px solid var(--hm-border-accent);
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.hm-hash::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hm-violet-2);
+  box-shadow: 0 0 8px var(--hm-violet-2);
+}
+
+/* Block tag — "BLOCK #0247" style ID */
+.hm-block-tag {
+  font-family: var(--hm-font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hm-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hm-block-tag svg {
+  width: 11px;
+  height: 11px;
+  opacity: 0.7;
+}
+.hm-block-tag .num {
+  color: var(--hm-violet-2);
+}
+
+/* XP chip — gamification reward */
+.hm-xp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border-radius: var(--hm-radius-pill);
+  font-family: var(--hm-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 4px 14px -4px rgba(139, 92, 246, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.18) inset;
+}
+.hm-xp-chip svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* Karma chip — reputation */
+.hm-karma-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border-radius: var(--hm-radius-pill);
+  font-family: var(--hm-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hm-amber);
+  background: var(--hm-amber-soft);
+  border: 1px solid rgba(244, 178, 108, 0.28);
+}
+.hm-karma-chip svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* Flame / streak */
+.hm-streak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: var(--hm-radius-pill);
+  font-family: var(--hm-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: #ff8a3d;
+  background: rgba(255, 138, 61, 0.1);
+  border: 1px solid rgba(255, 138, 61, 0.28);
+}
+.hm-streak-chip svg {
+  width: 11px;
+  height: 11px;
+  filter: drop-shadow(0 0 4px rgba(255, 138, 61, 0.6));
+}
+
+/* Tier gems for NFT/cert tiers */
+.hm-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--hm-radius-pill);
+  font-family: var(--hm-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.hm-tier::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  display: inline-block;
+}
+.hm-tier-common {
+  color: #9499ab;
+  background: rgba(148, 153, 171, 0.1);
+  border: 1px solid rgba(148, 153, 171, 0.28);
+}
+.hm-tier-common::before {
+  background: #9499ab;
+  box-shadow: 0 0 8px rgba(148, 153, 171, 0.7);
+}
+.hm-tier-rare {
+  color: #6e89c9;
+  background: rgba(110, 137, 201, 0.1);
+  border: 1px solid rgba(110, 137, 201, 0.32);
+}
+.hm-tier-rare::before {
+  background: #6e89c9;
+  box-shadow: 0 0 8px rgba(110, 137, 201, 0.8);
+}
+.hm-tier-epic {
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.1);
+  border: 1px solid rgba(167, 139, 250, 0.34);
+}
+.hm-tier-epic::before {
+  background: #a78bfa;
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.9);
+}
+.hm-tier-legendary {
+  color: #f4b26c;
+  background: rgba(244, 178, 108, 0.1);
+  border: 1px solid rgba(244, 178, 108, 0.36);
+}
+.hm-tier-legendary::before {
+  background: linear-gradient(135deg, #f4b26c, #a78bfa);
+  box-shadow: 0 0 12px rgba(244, 178, 108, 0.8);
+}
+
+/* AI chip — for AI-tutored / AI-personalized tags */
+.hm-ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 6px;
+  border-radius: var(--hm-radius-pill);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hm-violet-2);
+  background: var(--hm-violet-soft);
+  border: 1px solid var(--hm-border-accent);
+}
+.hm-ai-chip::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hm-violet-2);
+  box-shadow: 0 0 8px var(--hm-violet-2);
+  animation: hm-ai-pulse 1.6s ease-in-out infinite;
+}
+@keyframes hm-ai-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.7);
+  }
+}
+
+/* XP progress bar */
+.hm-progress {
+  width: 100%;
+  height: 6px;
+  background: rgba(167, 139, 250, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.hm-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6d28d9 0%, #a78bfa 60%, #f4b26c 100%);
+  border-radius: 999px;
+  position: relative;
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.5);
+}
+.hm-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  animation: hm-shimmer 2.4s linear infinite;
+}
+@keyframes hm-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Aura ring around avatars (karma indicator) */
+.hm-aura {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.hm-aura::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 90deg, #a78bfa, #f4b26c, #6e89c9, #a78bfa);
+  opacity: 0.85;
+  filter: blur(0.5px);
+  z-index: 0;
+}
+.hm-aura::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  background: var(--hm-bg);
+  z-index: 1;
+}
+.hm-aura > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Iridescent NFT-cert border */
+.hm-iridescent {
+  position: relative;
+  border-radius: var(--hm-radius-lg);
+  background: var(--hm-bg-card);
+  isolation: isolate;
+}
+.hm-iridescent::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from 0deg, #a78bfa, #f4b26c, #7bc8c5, #c879d6, #a78bfa);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+  animation: hm-rotate 8s linear infinite;
+}
+@keyframes hm-rotate {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+/* Terminal block — for command-style sections */
+.hm-terminal {
+  background: #07080f;
+  border: 1px solid var(--hm-border-strong);
+  border-radius: var(--hm-radius);
+  font-family: var(--hm-font-mono);
+  position: relative;
+  overflow: hidden;
+}
+.hm-terminal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.06), transparent);
+  border-bottom: 1px solid var(--hm-border);
+  pointer-events: none;
+}
+.hm-terminal-prompt {
+  color: var(--hm-violet-2);
+}
+.hm-terminal-cursor::after {
+  content: '▋';
+  color: var(--hm-violet-2);
+  animation: hm-blink 1s steps(2) infinite;
+  margin-left: 2px;
+}
+@keyframes hm-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Quest node — numbered circle with violet ring */
+.hm-quest-node {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--hm-bg-elev);
+  border: 1px solid var(--hm-border-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--hm-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hm-violet-2);
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.06);
+  flex-shrink: 0;
+}
+.hm-quest-node.done {
+  background: var(--hm-violet);
+  color: #fff;
+  border-color: var(--hm-violet);
+  box-shadow:
+    0 0 0 4px rgba(167, 139, 250, 0.18),
+    0 0 12px rgba(139, 92, 246, 0.5);
+}
+.hm-quest-node.locked {
+  color: var(--hm-text-dim);
+  border-color: var(--hm-border);
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+/* Chain dotted connector (for vertical curriculum chains) */
+.hm-chain-dotted {
+  width: 1px;
+  background-image: linear-gradient(180deg, var(--hm-border-accent) 50%, transparent 50%);
+  background-size: 1px 6px;
+  background-repeat: repeat-y;
+}
+
+/* Soft glowing dot accent */
+.hm-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hm-violet-2);
+  box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.6);
+  animation: hm-pulse 2s ease-out infinite;
+}
+@keyframes hm-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(167, 139, 250, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(167, 139, 250, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(167, 139, 250, 0);
+  }
+}
+
+/* Stat tile — for hero metrics */
+.hm-stat-tile {
+  background: var(--hm-bg-card);
+  border: 1px solid var(--hm-border);
+  border-radius: var(--hm-radius);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.hm-stat-tile::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--hm-violet-2), transparent);
+  opacity: 0.6;
+}
+
+/* Star rating mini */
+.hm-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: var(--hm-violet-2);
+}
+.hm-stars svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+.hm-stars .empty {
+  opacity: 0.25;
+}
+
+/* Hex tile (for badges / cert visuals) */
+.hm-hex {
+  width: 64px;
+  height: 72px;
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.18) 0%, rgba(167, 139, 250, 0.04) 100%);
+  border: 1px solid var(--hm-border-accent);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.hm-hex.legendary {
+  background: linear-gradient(180deg, rgba(244, 178, 108, 0.22) 0%, rgba(167, 139, 250, 0.1) 100%);
+}
+
+/* Subtle scanline (terminal feel) on selected sections */
+.hm-scanlines {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(167, 139, 250, 0.025) 3px,
+    rgba(167, 139, 250, 0.025) 4px
+  );
+}
+
+/* ===== Light-theme overrides for new utilities ===== */
+.hm-root.hm-light .hm-terminal {
+  background: #f6f4ff;
+}
+.hm-root.hm-light .hm-aura::after {
+  background: var(--hm-bg-elev);
+}
+.hm-root.hm-light .hm-quest-node {
+  background: var(--hm-bg-card);
+}
+.hm-root.hm-light .hm-quest-node.done {
+  background: var(--hm-violet);
+  color: #fff;
+}
+
+/* Clickable admin table rows */
+.hm-admin-row-clickable {
+  transition: background-color 120ms ease;
+}
+.hm-admin-row-clickable:hover {
+  background: var(--hm-bg-card-2);
+}
